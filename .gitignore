@@ -13,8 +13,8 @@ packrat/lib*/
 workspace/.RData
 workspace/.Rhistory
 
-#big files from Summit cluster Courtney 
-data/Courtney/CU_Summit_output
+#big downloaded from EDI
+data/
 
 # prevent users to commit to heavy files
 *.zip
@@ -25,8 +25,6 @@ data/Courtney/CU_Summit_output
 *~
 *.~lock*
 
-#giant logger data file from barrow/atqasuk
-data/BARROW_ATQASUK/dataTpHrcanopyTr.csv
 
 # Word temporary
 ~$*.doc*
