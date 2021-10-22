@@ -1,12 +1,72 @@
+#packrat
+packrat/lib*/
+
+# prevent users to commit their own RProject
+.Rproj
+.Rproj.user
+*.Rproj
+
+# prevent users to commit their own .RData and .Rhistory in mutual area
+.RData
+.Rhistory
+.Rapp.history
+workspace/.RData
+workspace/.Rhistory
+
+#big files from Summit cluster Courtney 
+data/Courtney/CU_Summit_output
+
+# prevent users to commit to heavy files
+*.zip
+*.tif
+*.shp
+
+# temporary files
+*~
+*.~lock*
+
+#giant logger data file from barrow/atqasuk
+data/BARROW_ATQASUK/dataTpHrcanopyTr.csv
+
+# Word temporary
+~$*.doc*
+
+# Excel temporary
+~$*.xls*
+
+# Excel Backup File
+*.xlk
+
+# PowerPoint temporary
+~$*.ppt*
+
+## hide the workspace creation procedure
+scripts/create_workspace/*
+
+## prevent mac users to commit .DS_Store files
+*.DS_Store
+
+## prevent to commit the README.. files created by RStudio
+#*README_files/
+*README.html
+*README_cache/
+
+# get rid of icon files
+*.Icon\r\r
+
+## prevent to commit Thumbs.db files
+Thumbs.db
+
+# index.lock files
+index.lock
+.httr-oauth
+
+# Ignore Rplots.pdf files
+Rplots.pdf
+
 # History files
 .Rhistory
 .Rapp.history
-
-# Session Data files
-.RData
-
-# User-specific files
-.Ruserdata
 
 # Example code in package build process
 *-Ex.R
@@ -17,9 +77,6 @@
 # Output files from R CMD check
 /*.Rcheck/
 
-# RStudio files
-.Rproj.user/
-
 # produced vignettes
 vignettes/*.html
 vignettes/*.pdf
@@ -28,12 +85,12 @@ vignettes/*.pdf
 .httr-oauth
 
 # knitr and R markdown default cache directories
-*_cache/
+/*_cache/
 /cache/
 
 # Temporary files created by R markdown
 *.utf8.md
 *.knit.md
 
-# R Environment Variables
-.Renviron
+# Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
+rsconnect/
