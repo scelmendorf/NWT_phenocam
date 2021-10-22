@@ -16,6 +16,9 @@ workspace/.Rhistory
 #big downloaded from EDI
 data/
 
+#just viz plots
+plots/raw_data_plots/
+
 # prevent users to commit to heavy files
 *.zip
 *.tif
