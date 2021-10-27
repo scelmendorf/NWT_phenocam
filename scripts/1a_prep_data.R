@@ -403,6 +403,7 @@ est_sm = all_met %>%
 
 
 #est snowfall by the same logic
+#ie when 5d ma dtr drops below snow-covered value in fall (after sept 15)
 est_sf = all_met %>%
   mutate(year = lubridate::year(ymd),
          doy = lubridate::yday(ymd)) %>%
@@ -418,13 +419,13 @@ est_sf = all_met %>%
               mutate(soiltemp_dtr_ma_2 = slider::slide_dbl(soiltemp_dtr, mean, .before = 2, .after = 2))) %>%
   mutate(snow_status_2 = ifelse(soiltemp_dtr_ma_2<soiltemp_dtr_ma_2_avg, 'snow_covered', 'snow_free')) %>%
   mutate(year = lubridate::year(ymd), doy = lubridate::yday(ymd)) %>%
-  filter(snow_status_2 == 'snow_covered'&doy>200) %>%
+  filter(snow_status_2 == 'snow_covered'&doy>258) %>% # first doy snow covered after sept 1
   group_by(sensornode, year) %>%
   summarise(doy = min(doy)) %>%
   mutate(doy = 
-           case_when(year == 2018&sensornode%in%c(6,17) ~ 'NA',
-                     year == 2019&sensornode%in%c(19) ~ 'NA',
-                     sensornode == 1 ~ 'NA',
+           case_when(#year == 2018&sensornode%in%c(6,17) ~ 'NA',
+                     #year == 2019&sensornode%in%c(19) ~ 'NA',
+                     #sensornode == 1 ~ 'NA',
                      year == 2017 ~ 'NA',
                      TRUE ~ as.character(doy))) %>%
   mutate(doy = as.numeric(doy)) %>%
@@ -479,6 +480,8 @@ if (plot_data){
   facet_wrap(~sensornode)+
   geom_vline(data = snowmelt, aes(xintercept = snowmelt_date_infilled),
            color="red")+
+  geom_vline(data = snowmelt, aes(xintercept = snowfall_date_infilled),
+                 color="blue")+    
   geom_vline(data = snowmelt, aes(xintercept = snowmelt_date),
            color = "purple")+
   ggtitle("5 day running mean soil diurnal temperature range \n
@@ -491,8 +494,8 @@ if (plot_data){
 
 # trim all on first snowfall date
 # by inspection of the phenocam data we can see that 2017 was doy 259
-snowmelt %>% group_by(year) %>%
-  summarize(min_snowfall = min (snowfall_doy_infilled, na.rm = TRUE),
+bounds <-snowmelt %>% group_by(year) %>%
+  summarize(median_snowfall = median (snowfall_doy_infilled, na.rm = TRUE),
             min_snowmelt = min(snowmelt_doy_infilled, na.rm = TRUE))
 
 #join all phen to snowmelt, remove any points before doy 118
@@ -501,9 +504,9 @@ all_phen = all_phen %>%
   #eyeballed snowfall doy for 2017 off greenness
   mutate(snowfall_doy_infilled = ifelse(year == 2017, 259, snowfall_doy_infilled)) %>%
   #for this one too
-  mutate(snowfall_doy_infilled = ifelse(year == 2019&is.na(snowfall_doy_infilled), 283, snowfall_doy_infilled)) %>%
-  mutate(snowfall_doy_infilled = ifelse(year==2018&is.na(snowfall_doy_infilled), 275, snowfall_doy_infilled)) %>%
-  mutate(snowfall_doy_infilled = ifelse(year==2020&is.na(snowfall_doy_infilled), 298, snowfall_doy_infilled)) %>%
+  mutate(snowfall_doy_infilled = ifelse(year == 2019&is.na(snowfall_doy_infilled), bounds$median_snowfall[bounds$year==2019], snowfall_doy_infilled)) %>%
+  mutate(snowfall_doy_infilled = ifelse(year == 2018&is.na(snowfall_doy_infilled), bounds$median_snowfall[bounds$year==2018], snowfall_doy_infilled)) %>%
+  mutate(snowfall_doy_infilled = ifelse(year == 2020&is.na(snowfall_doy_infilled), bounds$median_snowfall[bounds$year==2018], snowfall_doy_infilled)) %>%
   rowwise() %>%
   #2017 we are missing the doy but it definitely must have had snow on doy 118 which is the min over all other years
   mutate(spline_filtered = ifelse(((doy < snowmelt_doy_infilled&!is.na(snowmelt_doy_infilled))|doy < 118), NA, spline_filtered)) %>%
@@ -511,6 +514,23 @@ all_phen = all_phen %>%
   mutate(max_filtered = ifelse(((doy < snowmelt_doy_infilled&!is.na(snowmelt_doy_infilled))|doy < 118), NA, max_filtered)) %>%
   mutate(max_filtered = ifelse(doy >= snowfall_doy_infilled, NA, max_filtered)) %>%
   select(year, sensornode, doy, max_filtered, spline_filtered,snowfall_doy_infilled, snowmelt_doy_infilled, ymd)
+
+
+# and infilled (red) snowmelt dates
+if (plot_data){
+  (ggplot(all_phen, aes( x= doy, y=soiltemp_dtr))+
+      geom_line()+
+      facet_wrap(~sensornode)+
+      geom_vline(data = all_phen, aes(xintercept = snowmelt_doy_infilled),
+                 color="red")+
+      geom_vline(data = all_phen, aes(xintercept = snowfall_doy_infilled),
+                 color="blue")+ 
+      ggtitle("5 day running mean soil diurnal temperature range \n
+          observed snowmelt (purple) infilled snowment (red)")+
+      theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+     facet_grid(sensornode ~ year)) %>% 
+    ggsave(file='plots/raw_data_plots/soil_dtr_with_infilled_snowmelt_final.jpg', ., width = 8, height = 5)
+}
 
 #pad out doys
 all_doy = expand.grid(year = unique (all_phen$year), doy = seq(1:365))
