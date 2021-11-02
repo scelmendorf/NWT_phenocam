@@ -771,5 +771,13 @@ ggplot (all_met_infilled_seq, aes(x=ymd, y=soilmoisture_b_30cm_avg_ave, color = 
   geom_point(size=1)+
   facet_wrap(~sensornode)
 
+# ((ggplot(all_met %>% mutate(year = factor(lubridate::year(ymd)),
+#                             doy = lubridate::yday(ymd)), aes(x = doy))+
+#     geom_point(aes(y = soilmoisture_b_5cm_avg_ave, group = year, color = year),
+#                size = 0.5, alpha = 0.5))+
+#     ggtitle ("soil moisture 5cm for each node in each year \n vertical lines show snowmelt date")+
+#     facet_wrap(~sensornode)) %>%
+#   ggsave(file='plots/raw_data_plots/soil_moist5_seasonality.jpg', ., width = 8, height = 5)
+
 
 
