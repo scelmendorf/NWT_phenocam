@@ -1311,7 +1311,7 @@ y.grob <- textGrob("RMSE",
 p1 = plot_grid(prow, legend, rel_widths = c(3,.4))
 
 rmse_all<-grid.arrange(arrangeGrob(p1, left = y.grob))
-jpeg('plots/rmse_all.jpg', width =800, height =600)
+jpeg('plots/rmse_all.jpg', width =800, height =200)
 ggdraw(rmse_all)
 dev.off()
 
