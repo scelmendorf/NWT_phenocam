@@ -1,6 +1,7 @@
 # script to download source files from EDI
 # sce 22 Oct 2021
 # resultant files in /data directory 
+# updated 5/23/2022 with new data
 
 # Setup ########################################################################
 
@@ -21,14 +22,14 @@ getEML<-function(packageid){
 
 #download phenocam####
 #copy citation from here:
-#https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-nwt.192.2
+#https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-nwt.192.3
 
-#Elwood, K., J. Smith, and Niwot Ridge LTER. 2021. Time-lapse camera (phenocam)
-#imagery of Sensor Network plots from 2017 to ongoing ver 2.
-#Environmental Data Initiative.
-#https://doi.org/10.6073/pasta/89e8189093392325ee139eccc6b2ff85 (Accessed 2021-10-22).
+# Elwood, K., J. Smith, S. Elmendorf, and Niwot Ridge LTER. 2022.
+# Time-lapse camera (phenocam) imagery of sensor network plots,
+# 2017 - ongoing. ver 3. Environmental Data Initiative.
+# https://doi.org/10.6073/pasta/285918fbf5cc4bd2ed2c1241db9a1b2d (Accessed 2022-05-23).
 
-phen_eml = getEML('knb-lter-nwt.192.2')
+phen_eml = getEML('knb-lter-nwt.192.3')
 for (i in (1:length(phen_eml$dataset$dataTable))){
   download.file(url = phen_eml$dataset$dataTable[[i]]$physical$distribution$online$url$url,
                 destfile = paste0(path2data, phen_eml$dataset$dataTable[[i]]$physical$objectName)
@@ -38,14 +39,15 @@ for (i in (1:length(phen_eml$dataset$dataTable))){
 #download met####
 
 #copy citation from here:
-#https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-nwt.210.3
+#https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-nwt.210.4
 
-#Morse, J. and Niwot Ridge LTER. 2021. Saddle catchment
-#sensor network data, 2017- ongoing. ver 3. Environmental Data Initiative.
-#https://doi.org/10.6073/pasta/c1a7a58e355112c362d35092071fa1f0 (Accessed 2021-10-22).
+#Morse, J. and Niwot Ridge LTER. 2022. Climate data for saddle catchment sensor
+#network, 2017 - ongoing. ver 4. Environmental Data Initiative.
+#https://doi.org/10.6073/pasta/598894834ea3bae61d7550c30da06565
+#(Accessed 2022-05-23).
 
 
-met_eml = getEML('knb-lter-nwt.210.3')
+met_eml = getEML('knb-lter-nwt.210.4')
 for (i in (1:length(met_eml$dataset$dataTable))){
   download.file(url = met_eml$dataset$dataTable[[i]]$physical$distribution$online$url$url,
                 destfile = paste0(path2data, met_eml$dataset$dataTable[[i]]$physical$objectName)
