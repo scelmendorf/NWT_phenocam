@@ -204,13 +204,6 @@ format_phen <- function(df){
            moist_7d = slider::slide_dbl(soilmoisture_b_5cm_avg_ave, mean, .before = 7, .after = 0),
            temp_7d_air = slider::slide_dbl(airtemp_avg_ave, mean, .before = 7, .after = 0),
            temp_7d = slider::slide_dbl(soiltemp_5cm_avg_ave, mean, .before = 7, .after = 0)) %>%
-    # mutate(GDD_scale = scale(GDD),
-    #        GDD_air_scale = scale(GDD_air),
-    #        moist_7d_scale = scale(moist_7d), 
-    #        temp_7d_air_scale = scale(temp_7d_air), 
-    #        temp_7d_scale = scale(temp_7d),
-    #        yday_scale = scale(yday),
-    #        days_since_snow_scale = scale(days_since_snow))%>%
     ungroup() 
 }
 
@@ -327,8 +320,8 @@ phen_data_eos_pred = format_phen(phen_data_eos_pred)
 # here filtered on days_since_snow >0 because limited growth prior to snow
 
 #solves the same as this
-sos_all = glm(formula = status ~ #GDD +
-                snowmelt_doy_infilled+
+sos_all = glm(formula = status ~ 
+                snowmelt_doy_infilled +
                   moist_7d + yday + temp_7d,
                 family = binomial(link = "logit"),
                 data = phen_data_sos %>%
@@ -337,13 +330,13 @@ sos_all = glm(formula = status ~ #GDD +
 
 
 #air
-sos_air_all = glm(formula = status ~ GDD_air + yday + snowmelt_doy_infilled +temp_7d_air,
+sos_air_all = glm(formula = status ~ yday + snowmelt_doy_infilled +temp_7d_air + moist_7d,
                   family = binomial(link = "logit"),
                   data = phen_data_sos %>%
                     ungroup ()%>%
                     filter(days_since_snow>0))
 
-pop_all = glm(formula = status ~ GDD + snowmelt_doy_infilled + moist_7d + yday + temp_7d,
+pop_all = glm(formula = status ~ snowmelt_doy_infilled + moist_7d + yday + temp_7d,
               family = binomial(link = "logit"),
               data = phen_data_pop %>%
                 ungroup ()%>%
@@ -359,19 +352,19 @@ pop_all = glm(formula = status ~ GDD + snowmelt_doy_infilled + moist_7d + yday +
 #                 ungroup ())
 
 
-pop_air_all = glm(formula = status ~ GDD_air+ snowmelt_doy_infilled + yday + temp_7d_air,
+pop_air_all = glm(formula = status ~ snowmelt_doy_infilled + moist_7d + yday + temp_7d_air,
                   family = binomial(link = "logit"),
                   data = phen_data_pop %>%
                     ungroup %>%
                     filter(days_since_snow>0))
 
-eos_all = glm(formula = status ~ GDD + snowmelt_doy_infilled + moist_7d + yday + temp_7d,
+eos_all = glm(formula = status ~ snowmelt_doy_infilled + moist_7d + yday + temp_7d,
               family = binomial(link = "logit"),
               data = phen_data_eos %>%
                 ungroup %>%
                 filter(days_since_snow>0))
 
-eos_air_all = glm(formula = status ~ GDD_air + yday + days_since_snow + temp_7d_air,
+eos_air_all = glm(formula = status ~ yday + moist_7d + snowmelt_doy_infilled + temp_7d_air,
                   family = binomial(link = "logit"),
                   data = phen_data_eos %>%
                     ungroup %>%
@@ -389,10 +382,10 @@ model.aic.backward_sos_air <- step(sos_air_all, direction = "backward", trace = 
 summary (model.aic.backward_sos_air)
 
 model.aic.backward_pop <- step(pop_all, direction = "backward", trace = 1)
-summary (model.aic.backward_pop) # warmer springs make it earlier, but cooler summers make it later?
+summary (model.aic.backward_pop) 
 
 model.aic.backward_pop_air <- step(pop_air_all, direction = "backward", trace = 1)
-summary (model.aic.backward_pop_air) # warmer springs make it earlier, but cooler summers make it later?
+summary (model.aic.backward_pop_air) 
 
 model.aic.backward_eos <- step(eos_all, direction = "backward", trace = 1)
 summary (model.aic.backward_eos)
@@ -624,9 +617,7 @@ eos_fitted_drop_temp_7d= glm(formula = update(formula(model.aic.backward_eos), ~
 eos_drop_temp_7d_rmse = model_cv_surv(phen_data_eos, phen_data_eos_pred,
                                       eos_fitted_drop_temp_7d)
 
-#repeat for air #GDD_air + yday
-#surv wo yday
-#GDD_air + yday
+#repeat for air 
 eos_fitted_drop_yday_air= glm(formula = update(formula(model.aic.backward_eos_air), ~. -yday),
                               family = binomial(link = "logit"),
                               data = phen_data_eos %>%
@@ -636,15 +627,27 @@ eos_fitted_drop_yday_air= glm(formula = update(formula(model.aic.backward_eos_ai
 eos_drop_yday_rmse_air = model_cv_surv(phen_data_eos, phen_data_eos_pred,
                                        eos_fitted_drop_yday_air)
 
-#surv wo GDD
-eos_fitted_drop_GDD_air= glm(formula = update(formula(model.aic.backward_eos_air), ~. -GDD),
+#surv wo moist
+eos_fitted_drop_moist_7d_air= glm(formula = update(formula(model.aic.backward_eos_air), ~. -moist_7d),
                              family = binomial(link = "logit"),
                              data = phen_data_eos %>%
                                ungroup %>%
                                filter(days_since_snow>0))
 
-eos_drop_GDD_rmse_air = model_cv_surv(phen_data_eos, phen_data_eos_pred,
-                                      eos_fitted_drop_GDD_air)
+eos_drop_moist_7d_rmse_air = model_cv_surv(phen_data_eos, phen_data_eos_pred,
+                                           eos_fitted_drop_moist_7d_air)
+
+
+eos_fitted_drop_snowmelt_doy_infilled_air = glm(formula = update(formula(model.aic.backward_eos_air), ~. -snowmelt_doy_infilled),
+                                            family = binomial(link = "logit"),
+                                            data = phen_data_eos %>%
+                                              ungroup %>%
+                                              filter(days_since_snow>0))
+
+eos_drop_snowmelt_doy_infilled_rmse_air = model_cv_surv(phen_data_eos, phen_data_eos_pred,
+                                                    eos_fitted_drop_snowmelt_doy_infilled_air )
+
+
 
 
 
@@ -663,10 +666,11 @@ for (mod in c(
   'eos_full_rmse_air',
   'eos_drop_yday_rmse', 
   'eos_drop_yday_rmse_air', 
-  'eos_drop_GDD_rmse_air',
+  'eos_drop_moist_7d_rmse_air',
   'eos_drop_temp_7d_rmse', 
   'eos_drop_moist_7d_rmse', 
   'eos_drop_snowmelt_doy_infilled_rmse', 
+  'eos_drop_snowmelt_doy_infilled_rmse_air', 
   'eos_rmse_null', 
   'eos_rmse_GDD',
   'eos_rmse_GDD_air',
@@ -692,9 +696,11 @@ all_rmse_eos = all_rmse_eos%>%
       mod == 'eos_drop_yday_rmse' ~ '- day of year',
       mod == 'eos_drop_temp_7d_rmse' ~ '- 7d running mean soil temperature',
       mod == 'eos_drop_moist_7d_rmse' ~ '- 7d running mean soil moisture',
-      mod == 'eos_drop_snowmelt_rmse' ~ '- snowmelt',
+      mod == 'eos_drop_snowmelt_doy_infilled_rmse' ~ '- snowmelt',
+      mod == 'eos_drop_snowmelt_doy_infilled_rmse_air' ~ '- snowmelt (air temperature model)',
       mod == 'eos_drop_yday_rmse_air' ~ '- day of year (air temperature model)',
-      mod == 'eos_drop_GDD_rmse_air' ~ '- GDD (air temperature model)',
+      mod == 'eos_drop_moist_7d_rmse_air' ~ '- 7d running mean soil moisture (air temperature model)',
+      mod == 'eos_drop_moist_7d_rmse_air' ~ '- 7d running mean soil moisture (air temperature model)',
       TRUE ~ mod
     )
   )
@@ -737,19 +743,20 @@ eos_vs_thresh <- ggplot(all_rmse_eos, aes(mod,rmse, group=type, linetype = survi
 
 # plotting functions ------------------------------------------------------
 
+eos_effects_air <- plot_conditional_effect(dataset =phen_data_eos,
+                                           model =eos_fitted_air,
+                                           all_rmse = all_rmse_eos,
+                                           soil_or_air = 'air', linecolor = 'brown')
+
+
+
 
 #define function to plot effects
 plot_conditional_effect = function(dataset,
                                    phenometric = 'greenup', model,
                                    all_rmse, soil_or_air = 'soil', linecolor = 'green'
 ){
-  #dataset = phen_data_sos
-  #min_event = min_sos
-  #max_event = max_sos
-  #model = sos_fitted
-  #term = 'GDD'
-  #all_rmse = all_rmse_sos
-  
+
   #convert to deltas
   full = all_rmse %>%
     filter(grepl('full', model))
@@ -857,10 +864,12 @@ for (mod in c(
   'eos_full_rmse_air',
   'eos_drop_yday_rmse', 
   'eos_drop_yday_rmse_air', 
-  'eos_drop_GDD_rmse_air', 
+  'eos_drop_moist_7d_rmse_air', 
   'eos_drop_temp_7d_rmse', 
   'eos_drop_moist_7d_rmse', 
+  'eos_drop_moist_7d_rmse_air',
   'eos_drop_snowmelt_doy_infilled_rmse', 
+  'eos_drop_snowmelt_doy_infilled_rmse_air', 
   'eos_rmse_null', 
   'eos_rmse_GDD',
   'eos_rmse_GDD_air',
@@ -877,6 +886,11 @@ eos_effects <- plot_conditional_effect(dataset =phen_data_eos,
                                        all_rmse = all_rmse_eos,
                                        soil_or_air = 'soil', linecolor = 'brown')
 
+eos_effects_air <- plot_conditional_effect(dataset =phen_data_eos,
+                                       model =eos_fitted_air,
+                                       all_rmse = all_rmse_eos,
+                                       soil_or_air = 'air', linecolor = 'brown')
+
 p1 = cowplot::plot_grid(plotlist =eos_effects)
 
 x.grob <- textGrob("senescence", 
@@ -885,16 +899,25 @@ y.grob <- textGrob("h(x)",
                    gp=gpar(col="black", fontsize=15), rot=90)
 
 eos_all<-grid.arrange(arrangeGrob(p1, left = y.grob, top = x.grob))
+
+p1 = cowplot::plot_grid(plotlist =eos_effects_air)
+eos_all_air<-grid.arrange(arrangeGrob(p1, left = y.grob, top = x.grob))
+
 jpeg('plots/eos_all.jpg', width =600, height =600)
 ggdraw(eos_all)
 dev.off()
+
+jpeg('plots/eos_all_air.jpg', width =600, height =600)
+ggdraw(eos_all)
+dev.off()
+
 
 
 # compare model fits peak (pop) -------------------------------------------
 
 # repeat for peak#####
 #drop each in turn
-#GDD + snowmelt_doy_infilled + moist_7d + yday + temp_7d
+
 pop_fitted = glm(formula = formula(model.aic.backward_pop),
                  family = binomial(link = "logit"),
                  data = phen_data_pop %>%
@@ -916,17 +939,6 @@ pop_fitted_air = glm(formula = formula(model.aic.backward_pop_air),
 pop_full_rmse_air = model_cv_surv(phen_data_pop, phen_data_pop_pred,
                                   pop_fitted_air)
 
-#GDD + days_since_snow + moist_7d + yday + temp_7d
-
-pop_fitted_drop_GDD = glm(formula = update(formula(model.aic.backward_pop), ~. -GDD),
-                          family = binomial(link = "logit"),
-                          data = phen_data_pop %>%
-                            ungroup %>%
-                            filter(days_since_snow>0))
-
-pop_drop_GDD_rmse = model_cv_surv(phen_data_pop, phen_data_pop_pred,
-                                  pop_fitted_drop_GDD)
-
 
 pop_fitted_drop_snowmelt_doy_infilled = glm(formula = update(formula(model.aic.backward_pop), ~. -snowmelt_doy_infilled),
                                             family = binomial(link = "logit"),
@@ -947,15 +959,6 @@ pop_fitted_drop_yday= glm(formula = update(formula(model.aic.backward_pop), ~. -
 pop_drop_yday_rmse = model_cv_surv(phen_data_pop, phen_data_pop_pred,
                                    pop_fitted_drop_yday)
 
-pop_fitted_drop_temp_7d= glm(formula = update(formula(model.aic.backward_pop), ~. -temp_7d),
-                             family = binomial(link = "logit"),
-                             data = phen_data_pop %>%
-                               ungroup %>%
-                               filter(days_since_snow>0))
-
-pop_drop_temp_7d_rmse = model_cv_surv(phen_data_pop, phen_data_pop_pred,
-                                      pop_fitted_drop_temp_7d)
-
 
 pop_fitted_drop_moist_7d= glm(formula = update(formula(model.aic.backward_pop), ~. -moist_7d),
                               family = binomial(link = "logit"),
@@ -965,21 +968,6 @@ pop_fitted_drop_moist_7d= glm(formula = update(formula(model.aic.backward_pop), 
 pop_drop_moist_7d_rmse = model_cv_surv(phen_data_pop, phen_data_pop_pred,
                                        pop_fitted_drop_moist_7d)
 #air drop 1 term
-pop_fitted_drop_temp_7d_air= glm(formula = update(formula(model.aic.backward_pop_air), ~. -temp_7d_air),
-                                 family = binomial(link = "logit"),
-                                 data = phen_data_pop %>%
-                                   ungroup %>%
-                                   filter(days_since_snow>0))
-pop_drop_temp_7d_rmse_air = model_cv_surv(phen_data_pop, phen_data_pop_pred,
-                                          pop_fitted_drop_temp_7d_air)
-
-pop_fitted_drop_GDD_air= glm(formula = update(formula(model.aic.backward_pop_air), ~. -GDD_air),
-                             family = binomial(link = "logit"),
-                             data = phen_data_pop %>%
-                               ungroup %>%
-                               filter(days_since_snow>0))
-pop_drop_GDD_air_rmse_air = model_cv_surv(phen_data_pop, phen_data_pop_pred,
-                                          pop_fitted_drop_GDD_air)
 
 pop_fitted_drop_snowmelt_doy_infilled_air= glm(formula = update(formula(model.aic.backward_pop_air), ~.
                                                           -snowmelt_doy_infilled),
@@ -988,7 +976,7 @@ pop_fitted_drop_snowmelt_doy_infilled_air= glm(formula = update(formula(model.ai
                                            ungroup %>%
                                            filter(days_since_snow>0))
 
-pop_drop_snowmelt_doy_infilled_air = model_cv_surv(phen_data_pop, phen_data_pop_pred,
+pop_drop_snowmelt_doy_infilled_rmse_air = model_cv_surv(phen_data_pop, phen_data_pop_pred,
                                                    pop_fitted_drop_snowmelt_doy_infilled_air)
 
 pop_fitted_drop_yday_air= glm(formula = update(formula(model.aic.backward_pop_air), ~.
@@ -1000,14 +988,14 @@ pop_fitted_drop_yday_air= glm(formula = update(formula(model.aic.backward_pop_ai
 pop_drop_yday_rmse_air = model_cv_surv(phen_data_pop, phen_data_pop_pred,
                                        pop_fitted_drop_yday_air)
 
-pop_fitted_drop_temp_7d_air= glm(formula = update(formula(model.aic.backward_pop_air), ~.
-                                                  -temp_7d_air),
+pop_fitted_drop_moist_7d_air= glm(formula = update(formula(model.aic.backward_pop_air), ~.
+                                                  -moist_7d),
                                  family = binomial(link = "logit"),
                                  data = phen_data_pop %>%
                                    ungroup %>%
                                    filter(days_since_snow>0))
-pop_drop_temp_7d_rmse_air = model_cv_surv(phen_data_pop, phen_data_pop_pred,
-                                          pop_fitted_drop_temp_7d_air)
+pop_drop_moist_7d_rmse_air = model_cv_surv(phen_data_pop, phen_data_pop_pred,
+                                          pop_fitted_drop_moist_7d)
 
 
 
@@ -1027,12 +1015,10 @@ for (mod in c(
   'pop_full_rmse_air', 
   'pop_drop_yday_rmse', 
   'pop_drop_yday_rmse_air', 
-  'pop_drop_temp_7d_rmse', 
-  'pop_drop_temp_7d_rmse_air', 
-  'pop_drop_snowmelt_doy_infilled_rmse', 
-  'pop_drop_GDD_rmse', 
-  'pop_drop_GDD_air_rmse_air', 
+  'pop_drop_snowmelt_doy_infilled_rmse',
+  'pop_drop_snowmelt_doy_infilled_rmse_air', 
   'pop_drop_moist_7d_rmse', 
+  'pop_drop_moist_7d_rmse_air', 
   'pop_rmse_null', 
   'pop_rmse_GDD',
   'pop_rmse_GDD_air',
@@ -1056,13 +1042,10 @@ all_rmse_pop = all_rmse_pop %>%
       mod == 'pop_rmse_GDD' ~ 'Threshold (GDD soil)',
       mod == 'pop_rmse_GDD_air' ~ 'Threshold (GDD air)',
       mod == 'pop_drop_yday_rmse' ~ '- day of year',
-      mod == 'pop_drop_GDD_rmse' ~ '- GDD (soil)',
-      mod == 'pop_drop_GDD_air_rmse_air' ~ '- GDD (air)',
-      mod == 'pop_drop_temp_7d_rmse' ~ '- 7d running mean soil temperature',
+      mod == 'pop_drop_moist_7d_rmse_air' ~ '- 7d running mean soil moisture(air temperature model)',
       mod == 'pop_drop_moist_7d_rmse' ~ '- 7d running mean soil moisture',
       mod == 'pop_drop_snowmelt_doy_infilled_rmse' ~ '- snowmelt',
       mod == 'pop_drop_yday_rmse_air' ~ '- day of year (air temperature model)',
-      mod == 'pop_drop_temp_7d_rmse_air' ~ '- 7d running mean air temperature',
       mod == 'pop_drop_snowmelt_doy_infilled_rmse_air' ~ '- snowmelt (air temperature model)',
       TRUE ~ mod
     )
@@ -1112,12 +1095,10 @@ for (mod in c(
   'pop_full_rmse_air', 
   'pop_drop_yday_rmse', 
   'pop_drop_yday_rmse_air', 
-  'pop_drop_temp_7d_rmse', 
-  'pop_drop_temp_7d_rmse_air', 
   'pop_drop_snowmelt_doy_infilled_rmse', 
-  'pop_drop_GDD_rmse', 
-  'pop_drop_GDD_air_rmse_air', 
+  'pop_drop_snowmelt_doy_infilled_rmse_air', 
   'pop_drop_moist_7d_rmse', 
+  'pop_drop_moist_7d_rmse_air', 
   'pop_rmse_null', 
   'pop_rmse_GDD',
   'pop_rmse_GDD_air',
@@ -1134,6 +1115,11 @@ pop_effects <- plot_conditional_effect(dataset =phen_data_pop,
                                        all_rmse = all_rmse_pop,
                                        soil_or_air = 'soil',
                                        linecolor = 'blue')
+pop_effects_air <- plot_conditional_effect(dataset =phen_data_pop,
+                                       model =pop_fitted_air,
+                                       all_rmse = all_rmse_pop,
+                                       soil_or_air = 'air',
+                                       linecolor = 'blue')
 
 p1 = cowplot::plot_grid(plotlist =pop_effects, nrow =1)
 
@@ -1146,6 +1132,12 @@ y.grob <- textGrob("h(x)",
 pop_all<-grid.arrange(arrangeGrob(p1, left = y.grob, top = x.grob))
 jpeg('plots/pop_all.jpg', width =600, height =600)
 ggdraw(pop_all)
+dev.off()
+
+p1 = cowplot::plot_grid(plotlist =pop_effects, nrow =1)
+pop_all_air<-grid.arrange(arrangeGrob(p1, left = y.grob, top = x.grob))
+jpeg('plots/pop_all_air.jpg', width =600, height =600)
+ggdraw(pop_all_air)
 dev.off()
 
 ###end repeat for peak
@@ -1175,15 +1167,7 @@ sos_fitted_air = glm(formula = formula(model.aic.backward_sos_air),
 sos_full_rmse_air = model_cv_surv(phen_data_sos, phen_data_sos_pred,
                                   sos_fitted_air)
 
-#GDD + days_since_snow + yday + temp_7d
-# sos_fitted_drop_GDD = glm(formula = update(formula(model.aic.backward_sos), ~. -GDD),
-#                           family = binomial(link = "logit"),
-#                           data = phen_data_sos %>%
-#                             ungroup %>%
-#                             filter(days_since_snow>0))
 
-sos_drop_GDD_rmse = model_cv_surv(phen_data_sos, phen_data_sos_pred,
-                                  sos_fitted_drop_GDD)
 sos_fitted_drop_snowmelt_doy_infilled = glm(formula = update(formula(model.aic.backward_sos), ~. -snowmelt_doy_infilled),
                                       family = binomial(link = "logit"),
                                       data = phen_data_sos %>%
@@ -1241,6 +1225,14 @@ sos_drop_yday_rmse_air = model_cv_surv(phen_data_sos, phen_data_sos_pred,
                                        sos_fitted_drop_yday_air)
 
 
+sos_fitted_drop_moist_7d_air= glm(formula = update(formula(model.aic.backward_sos_air), ~. -moist_7d),
+                              family = binomial(link = "logit"),
+                              data = phen_data_sos %>%
+                                ungroup %>%
+                                filter(days_since_snow>0))
+
+sos_drop_moist_7d_rmse_air = model_cv_surv(phen_data_sos, phen_data_sos_pred,
+                                       sos_fitted_drop_moist_7d_air)
 
 
 #both improve a lot over the null model of yday
@@ -1257,7 +1249,6 @@ all_rmse_sos = list()
 for (mod in c(
   'sos_full_rmse', 
   'sos_drop_yday_rmse', 
-  #'sos_drop_GDD_rmse', 
   'sos_drop_snowmelt_doy_infilled_rmse',
   'sos_drop_temp_7d_rmse', 
   'sos_rmse_null', 
@@ -1266,7 +1257,8 @@ for (mod in c(
   'sos_rmse_days_since_snow',
   'sos_full_rmse_air', 
   'sos_drop_yday_rmse_air', 
-  'sos_drop_temp_7d_rmse_air', 
+  #'sos_drop_temp_7d_rmse_air', 
+  'sos_drop_moist_7d_rmse_air', 
   'sos_drop_snowmelt_doy_infilled_rmse_air')){ 
   all_rmse_sos[[mod]] = as.data.frame(get(mod))
 }
@@ -1299,12 +1291,6 @@ all_rmse_sos = all_rmse_sos%>%
       TRUE ~ mod
     )
   ) 
-
-
-#sce things this is pretty close
-# fill color is soil temp vs air temp vs no temp at all
-# lines are solid if time-to event, dashed if threshold
-# could make the greenup 
 
 all_rmse_sos= all_rmse_sos %>%
   mutate (mod = gsub('\\(', '\n(', mod))%>%
@@ -1339,41 +1325,21 @@ sos_vs_thresh <- ggplot(all_rmse_sos, aes(mod,rmse, group=type, linetype = survi
   theme(legend.position = 'none')+
   ylab('RMSE')
   
-# sos_vs_thresh <- ggplot(all_rmse_sos %>%
-#                           mutate (mod = gsub('\\(', '\n(', mod))%>%
-#                           mutate(
-#                             mod = fct_reorder(mod, rmse, .fun = mean, .desc = FALSE)
-#                           )%>%
-#                           filter(test == 'threshold'), aes(color=type, fill = survival, y=rmse, x=mod)) + 
-#   geom_bar(position="dodge", stat="identity")+
-#   ggtitle("greenup")+
-#   theme_classic()+
-#   ylim(0, 25)+
-#   theme(axis.title.x=element_blank(),
-#         axis.text.x = element_text(angle = 45, hjust =1))+
-#   scale_fill_grey()+ guides(fill=guide_legend(title="holdout set"))+
-#   ylab('RMSE')
-
-# conditional effects plots
-
-#min_sos = min(phen_data_sos$doy_event)
-#max_sos = max(phen_data_sos$doy_event)
 
 #regrab the rmses to make deltas
 all_rmse_sos = list()
 for (mod in c(
   'sos_full_rmse', 
   'sos_drop_yday_rmse', 
-  #'sos_drop_GDD_rmse', 
   'sos_drop_snowmelt_doy_infilled_rmse', 
-  'sos_drop_temp_7d_rmse', 
   'sos_rmse_null', 
   'sos_rmse_GDD',
   'sos_rmse_GDD_air',
   'sos_rmse_days_since_snow',
   'sos_full_rmse_air', 
   'sos_drop_yday_rmse_air', 
-  'sos_drop_temp_7d_rmse_air', 
+  'sos_drop_temp_7d_rmse', 
+  'sos_drop_moist_7d_rmse_air', 
   'sos_drop_snowmelt_doy_infilled_rmse_air')){ 
   all_rmse_sos[[mod]] = as.data.frame(get(mod))
 }
@@ -1402,6 +1368,28 @@ sos_all<-grid.arrange(arrangeGrob(p1, left = y.grob, top = x.grob))
 jpeg('plots/sos_all.jpg', width =600, height =600)
 ggdraw(sos_all)
 dev.off()
+
+sos_effects_air <- plot_conditional_effect(dataset =phen_data_sos,
+                                       model =sos_fitted_air,
+                                       all_rmse = all_rmse_sos,
+                                       soil_or_air = 'soil',
+                                       linecolor = 'green')
+
+
+p1 = cowplot::plot_grid(plotlist =sos_effects_air)
+
+
+x.grob <- textGrob("greenup", 
+                   gp=gpar(col="black", fontsize=20))
+y.grob <- textGrob("h(x)", 
+                   gp=gpar(col="black", fontsize=15), rot=90)
+
+sos_all_air<-grid.arrange(arrangeGrob(p1, left = y.grob, top = x.grob))
+jpeg('plots/sos_all_air.jpg', width =600, height =600)
+ggdraw(sos_all_air)
+dev.off()
+
+
 
 #####
 
@@ -1434,7 +1422,7 @@ y.grob <- textGrob("\nRMSE",
 
 rmse_all<-grid.arrange(arrangeGrob(prow, left = y.grob))
 
-jpeg('plots/rmse_all.jpg', width =500, height =1000)
+jpeg('ms_plots/rmse_all.jpg', width =500, height =1000)
 ggdraw(rmse_all)
 dev.off()
 
@@ -1442,22 +1430,19 @@ dev.off()
 all_plots <-
   sos_effects[["snowmelt_doy_infilled"]] +
   sos_effects[["temp_7d"]] +
-  plot_spacer() + # GDD
   plot_spacer() + #moist
   sos_effects[["yday"]] +
 pop_effects[["snowmelt_doy_infilled"]] +
-pop_effects[["temp_7d"]] +
-pop_effects[["GDD"]]+
+  plot_spacer()+
 pop_effects[["moist_7d"]] + 
   pop_effects[["yday"]] +
 eos_effects[["snowmelt_doy_infilled"]] +
 eos_effects[["temp_7d"]] +
-plot_spacer() +
   eos_effects[["moist_7d"]] + 
 eos_effects[["yday"]] +
-plot_layout(ncol=5) +
+plot_layout(ncol=4) +
 plot_annotation(tag_levels = 'A')& 
-  theme(plot.tag.position = c(0.35, 0.9),
+  theme(plot.tag.position = c(0.25, 0.9),
         plot.tag = element_text(size = 12, hjust = 0.5, vjust = 0))
 
 y.grob <- textGrob("h(x)", 
@@ -1466,61 +1451,89 @@ y.grob <- textGrob("h(x)",
 gt <- patchwork::patchworkGrob(all_plots )
 
 all_plots<-grid.arrange(arrangeGrob(gt , left = y.grob))
-jpeg('plots/all_effects.jpg', width =700, height =600, quality =100)
+jpeg('ms_plots/all_effects.jpg', width =700, height =600, quality =100)
 ggdraw(all_plots)
 dev.off()
 
 
-#sce test this thing
-###
-all_mods = list(
-  sos=
-    data.frame(summary (model.aic.backward_sos)$coefficients)%>%
-    mutate(param = row.names(.)),
-  pop = data.frame(summary (model.aic.backward_pop)$coefficients)%>%
-    mutate(param = row.names(.)),
-  eos = data.frame(summary (model.aic.backward_eos)$coefficients)%>%
-    mutate(param = row.names(.))
-) %>%
-  data.table::rbindlist(., id = 'phenophase')
+all_plots_air <-
+  sos_effects_air[["snowmelt_doy_infilled"]] +
+  sos_effects_air[["temp_7d_air"]] +
+  plot_spacer() + #moist
+  sos_effects_air[["yday"]] +
+  pop_effects_air[["snowmelt_doy_infilled"]] +
+  plot_spacer()+
+  pop_effects_air[["moist_7d"]] + 
+  pop_effects_air[["yday"]] +
+  eos_effects_air[["snowmelt_doy_infilled"]] +
+  plot_spacer()+
+  eos_effects_air[["moist_7d"]] + 
+  eos_effects_air[["yday"]] +
+  plot_layout(ncol=4) +
+  plot_annotation(tag_levels = 'A')& 
+  theme(plot.tag.position = c(0.25, 0.9),
+        plot.tag = element_text(size = 12, hjust = 0.5, vjust = 0))
 
-ggplot (broom::tidy(model.aic.backward_sos, conf.int = TRUE) %>%
-          #           #rename(phenophase = name) %>%
-          #           filter(term !='(Intercept)'),
-          #         aes(xmin=conf.low, xmax = conf.high, y=term))+#, color = spec))+
-          #   geom_vline(aes(xintercept =0))+
-          #   geom_point(aes(x =estimate))+
-          #   geom_linerange(position=position_dodge(width=0.5))
-          
-          tst<-all_mods %>%
-          mutate(ci_lower = Estimate - 2*Std..Error,
-                 ci_upper = Estimate + 2*Std..Error)
-        
-        
-        ggplot (all_mods %>%
-                  filter(param %in%c('GDD', 'moist_7d', 'temp_7d',
-                                     'days_since_snow'))%>%
-                  mutate(phenophase =
-                           case_when(phenophase == 'sos' ~ 'greenup',
-                                     phenophase == 'pop' ~ 'peak',
-                                     phenophase == 'eos' ~ 'senescence'))%>%
-                  mutate(ci_lower = Estimate - 2*Std..Error,
-                         ci_upper = Estimate + 2*Std..Error),
-                aes(x=phenophase,
-                    y=Estimate, color = phenophase))+
-          geom_line(aes(group =1), color = 'black')+
-          geom_linerange(aes(
-            ymin = ci_lower,
-            ymax= ci_upper))+
-          geom_point()+
-          geom_hline(aes(yintercept =0), linetype = 'dotted')+
-          facet_wrap(~param, scales = 'free_y')+
-          ylab ('B \n delay <-> advance')+
-          scale_colour_manual(values = c(greenup = "green", peak = "blue",
-                                         senescence = "brown"))+
-          theme_classic()
-        
-        
+
+gt <- patchwork::patchworkGrob(all_plots_air )
+
+all_plots_air<-grid.arrange(arrangeGrob(gt , left = y.grob))
+jpeg('ms_plots/all_air_effects.jpg', width =700, height =600, quality =100)
+ggdraw(all_plots_air)
+dev.off()
+
+
+
+# #sce test this thing
+# ###
+# all_mods = list(
+#   sos=
+#     data.frame(summary (model.aic.backward_sos)$coefficients)%>%
+#     mutate(param = row.names(.)),
+#   pop = data.frame(summary (model.aic.backward_pop)$coefficients)%>%
+#     mutate(param = row.names(.)),
+#   eos = data.frame(summary (model.aic.backward_eos)$coefficients)%>%
+#     mutate(param = row.names(.))
+# ) %>%
+#   data.table::rbindlist(., id = 'phenophase')
+# 
+# ggplot (broom::tidy(model.aic.backward_sos, conf.int = TRUE) %>%
+#           #           #rename(phenophase = name) %>%
+#           #           filter(term !='(Intercept)'),
+#           #         aes(xmin=conf.low, xmax = conf.high, y=term))+#, color = spec))+
+#           #   geom_vline(aes(xintercept =0))+
+#           #   geom_point(aes(x =estimate))+
+#           #   geom_linerange(position=position_dodge(width=0.5))
+#           
+#           tst<-all_mods %>%
+#           mutate(ci_lower = Estimate - 2*Std..Error,
+#                  ci_upper = Estimate + 2*Std..Error)
+#         
+#         
+#         ggplot (all_mods %>%
+#                   filter(param %in%c('GDD', 'moist_7d', 'temp_7d',
+#                                      'days_since_snow'))%>%
+#                   mutate(phenophase =
+#                            case_when(phenophase == 'sos' ~ 'greenup',
+#                                      phenophase == 'pop' ~ 'peak',
+#                                      phenophase == 'eos' ~ 'senescence'))%>%
+#                   mutate(ci_lower = Estimate - 2*Std..Error,
+#                          ci_upper = Estimate + 2*Std..Error),
+#                 aes(x=phenophase,
+#                     y=Estimate, color = phenophase))+
+#           geom_line(aes(group =1), color = 'black')+
+#           geom_linerange(aes(
+#             ymin = ci_lower,
+#             ymax= ci_upper))+
+#           geom_point()+
+#           geom_hline(aes(yintercept =0), linetype = 'dotted')+
+#           facet_wrap(~param, scales = 'free_y')+
+#           ylab ('B \n delay <-> advance')+
+#           scale_colour_manual(values = c(greenup = "green", peak = "blue",
+#                                          senescence = "brown"))+
+#           theme_classic()
+#         
+#         
 
 # all junk afte here ------------------------------------------------------
 
