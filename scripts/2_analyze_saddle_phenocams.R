@@ -329,11 +329,11 @@ if (make_plots){
     geom_vline(aes(xintercept = snowmelt_doy_infilled, color = "snowmelt")) +
     geom_vline(aes(xintercept = snowfall_doy_infilled, color = "snowfall")) +
     geom_vline(data=sumry, 
-               aes(xintercept = sos, color = "spring")) +
+               aes(xintercept = sos, color = "greenup")) +
     geom_vline(data=sumry, 
                aes(xintercept = pop, color = "peak")) +
     geom_vline(data=sumry, 
-               aes(xintercept = eos, color = "fall")) +
+               aes(xintercept = eos, color = "senescence")) +
     facet_grid(year ~ sensornode) +
    ylim(0.25, 0.5)+
     scale_colour_manual(name="estimate dates",values=cols)+ 
@@ -341,9 +341,9 @@ if (make_plots){
     geom_label(data=rmses, aes(x=300, y=0.46, label = round(rmse,3)), size=2)+ 
     ylab('Green Chromatic Coordinate (filtered)')+
     ggtitle("phenology time series all years"))%>%
-  ggsave(file='plots/beckfit_max_infilled_allyrs_overplotted_with_phenometrics.jpg', ., width = 25, height = 8)
+  ggsave(file='ms_plots/beckfit_max_infilled_allyrs_overplotted_with_phenometrics.jpg', ., width = 25, height = 8)
   
-pdf('plots/beckfit_multipage.pdf', width = 10, height =7)
+pdf('ms_plots/beckfit_multipage.pdf', width = 10, height =7)
 nodesets = list(
   c(1,  6,  7,  8,  9,10),
   c( 11, 12, 13, 14, 15),
@@ -362,7 +362,9 @@ nodesets = list(
       geom_vline(data=sumry%>% filter(sensornode %in%nodesets[[nodes]]), 
                  aes(xintercept = eos, color = "fall")) +
       facet_grid(year~ sensornode) +
+      xlab('day of year')+
       ylim(0.25, 0.5)+
+      scale_x_continuous(limits = c(125, 325), breaks = c(200, 300)) +
       scale_colour_manual(name="estimate dates",values=cols)+ 
       theme(axis.text.x=element_text(angle = 90, hjust = 1)) +
       geom_label(data=rmses %>%
@@ -373,30 +375,32 @@ nodesets = list(
   }
   dev.off()
   
+
   #one sample for the main fig
-  myplot <-ggplot(with_preds %>% filter(sensornode == 19), aes(x = doy)) +
+  myplot <-ggplot(with_preds %>% filter(sensornode == 19&year>2017), aes(x = doy)) +
     geom_line(aes(y = max_infilled_pred), color='grey', size=2) +
     geom_point(aes(y = max_filtered, group = year), color = "black", size = 0.5) +
     geom_vline(aes(xintercept = snowmelt_doy_infilled, color = "snowmelt")) +
     geom_vline(aes(xintercept = snowfall_doy_infilled, color = "snowfall")) +
-    geom_vline(data=sumry%>% filter(sensornode == 19), 
+    geom_vline(data=sumry%>% filter(sensornode == 19&year>2017), 
                aes(xintercept = sos, color = "spring")) +
-    geom_vline(data=sumry%>% filter(sensornode == 19), 
+    geom_vline(data=sumry%>% filter(sensornode == 19&year>2017), 
                aes(xintercept = pop, color = "peak")) +
-    geom_vline(data=sumry%>% filter(sensornode == 19), 
+    geom_vline(data=sumry%>% filter(sensornode == 19&year>2017), 
                aes(xintercept = eos, color = "fall")) +
     facet_grid(year~.) +
-    #ylim(0.25, 0.5)+
+    #ylim(0.3, 0.45)+
     scale_colour_manual(name="estimate dates",values=cols)+ 
     theme(axis.text.x=element_text(angle = 90, hjust = 1)) +
     geom_label(data=rmses %>%
-                 filter(sensornode == 19), aes(x=300, y=0.46, label = round(rmse,3)), size=3)+ 
+                 filter(sensornode == 19&year>2017), aes(x=300, y=0.46, label = round(rmse,3)), size=3)+ 
     ylab('Green Chromatic Coordinate (filtered)')+
-    scale_y_continuous(limits = c(0.25, 0.5), breaks = c(0.3, 0.4, 0.5)) +
+    xlab('day of year')+
+    scale_y_continuous(limits = c(0.33, 0.48), breaks = c(0.35, 0.4, 0.45)) +
+    scale_x_continuous(limits = c(125, 325), breaks = c(200, 300)) +
     ggtitle(paste0("phenology time series example\n (node 19)"))+
-    theme_classic()
-  ggsave(myplot, file = 'plots/beck_fit_example_node_19.jpg', width =4, height =6)
-  
-  
+    theme_classic()+
+    theme(legend.position = 'none')
+  ggsave(myplot, file = 'ms_plots/beck_fit_example_node_19.jpg', width =4, height =6)
   
 }
