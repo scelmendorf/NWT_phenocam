@@ -1202,7 +1202,7 @@ sos_fitted_drop_temp_7d_air = glm(formula = update(formula(model.aic.backward_so
                                     ungroup %>%
                                     filter(days_since_snow>0))
 
-sos_drop_temp_7d_rmse_air = model_cv_surv(phen_data_sos, phen_data_sos_pred,
+sos_drop_temp_7d_air_rmse_air = model_cv_surv(phen_data_sos, phen_data_sos_pred,
                                           sos_fitted_drop_temp_7d_air)
 
 
@@ -1257,7 +1257,7 @@ for (mod in c(
   'sos_rmse_days_since_snow',
   'sos_full_rmse_air', 
   'sos_drop_yday_rmse_air', 
-  #'sos_drop_temp_7d_rmse_air', 
+  'sos_drop_temp_7d_air_rmse_air', 
   'sos_drop_moist_7d_rmse_air', 
   'sos_drop_snowmelt_doy_infilled_rmse_air')){ 
   all_rmse_sos[[mod]] = as.data.frame(get(mod))
@@ -1282,7 +1282,7 @@ all_rmse_sos = all_rmse_sos%>%
       mod == 'sos_drop_yday_rmse' ~ '- day of year',
       mod == 'sos_drop_GDD_rmse' ~ '- GDD (soil temperature model)',
       mod == 'sos_drop_temp_7d_rmse' ~ '- 7d running mean soil temperature',
-      mod == 'sos_drop_temp_7d_rmse_air' ~ '- 7d running mean air temperature',
+      mod == 'sos_drop_temp_7d_air_rmse_air' ~ '- 7d running mean air temperature',
       mod == 'sos_drop_moist_7d_rmse' ~ '- 7d running mean soil moisture',
       mod == 'sos_drop_days_since_snow_rmse' ~ '- days since snowmelt',
       mod == 'sos_drop_yday_rmse_air' ~ '- day of year (air temperature model)',
@@ -1339,6 +1339,7 @@ for (mod in c(
   'sos_full_rmse_air', 
   'sos_drop_yday_rmse_air', 
   'sos_drop_temp_7d_rmse', 
+  'sos_drop_temp_7d_air_rmse_air', 
   'sos_drop_moist_7d_rmse_air', 
   'sos_drop_snowmelt_doy_infilled_rmse_air')){ 
   all_rmse_sos[[mod]] = as.data.frame(get(mod))
@@ -1372,7 +1373,7 @@ dev.off()
 sos_effects_air <- plot_conditional_effect(dataset =phen_data_sos,
                                        model =sos_fitted_air,
                                        all_rmse = all_rmse_sos,
-                                       soil_or_air = 'soil',
+                                       soil_or_air = 'air',
                                        linecolor = 'green')
 
 
@@ -1459,7 +1460,7 @@ dev.off()
 all_plots_air <-
   sos_effects_air[["snowmelt_doy_infilled"]] +
   sos_effects_air[["temp_7d_air"]] +
-  plot_spacer() + #moist
+  sos_effects_air[["moist_7d"]] +
   sos_effects_air[["yday"]] +
   pop_effects_air[["snowmelt_doy_infilled"]] +
   plot_spacer()+
