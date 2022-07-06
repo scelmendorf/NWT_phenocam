@@ -52,7 +52,8 @@ nrec = all_phen %>%
 all_phen = all_phen %>% inner_join(., nrec)
 
 if (make_plots){
-#here is the real data
+  
+# gcc w real and inferred snowmelt timing
 (ggplot(all_phen %>% mutate(year = factor(year)), aes(x = doy)) +
   geom_point(aes(y = max_filtered, group = year, color = year)) +
   geom_vline(aes(xintercept = snowmelt_doy_infilled), color = "black") +
@@ -63,17 +64,6 @@ if (make_plots){
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 )%>% 
   ggsave(file='plots/gcc_trimmed_with_infilled_snowmelt.jpg', ., width = 8, height = 15)
-
-(ggplot(all_phen %>% mutate(year = factor(year))%>%filter(year==2020), aes(x = doy)) +
-    geom_point(aes(y = max_filtered, group = year, color = year)) +
-    geom_vline(aes(xintercept = snowmelt_doy_infilled), color = "black") +
-    geom_vline(aes(xintercept = snowfall_doy_infilled), color = "black") +
-    geom_hline(aes(yintercept = baseline_mx_filtered), color = "blue") +
-    facet_wrap(~ sensornode + year) + 
-    ggtitle('gcc max trimmed to snowfree period \n inferred snowmelt/snowfall days in black')+
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))
-)%>% 
-  ggsave(file='plots/gcc_trimmed_with_infilled_snowmelt_2020.jpg', ., width = 8, height = 5)
 }
 
 #infill based on (1) date less than snowmelt doy
@@ -145,14 +135,15 @@ fit_beck = function(df, colname, weighting) {
 
 #compare raw vs infilled any day that is snow dovered (_infilled)
 # vs infille only Dec, Jan, Feb (_infilled_winter)
-#comparing iteratively reweighted (TRUE)
-#vs just one round of weights (FALSE)
-# by trial and error I figured out weights of 0.15 for winter seem to
+# comparing iteratively reweighted (TRUE)
+# vs just one round of weights (FALSE)
+# by trial and error I figured out weights of 0.15 over the snow-covered period
 # show most fidelity to the data
+
 max_raw_rwt = fit_beck(df, 'max_filtered', TRUE)
 max_raw = fit_beck(df, 'max_filtered', FALSE)
 max_infilled_rwt = fit_beck(df, 'max_filtered_infilled', TRUE)
-max_infilled = fit_beck(df, 'max_filtered_infilled', FALSE)
+max_infilled = fit_beck(df, 'max_filtered_infilled', FALSE) #this is the one used
 max_infilled_winter_rwt = fit_beck(df, 'max_filtered_infilled_winter', TRUE)
 max_infilled_winter = fit_beck(df, 'max_filtered_infilled_winter', FALSE)
 
@@ -338,37 +329,78 @@ if (make_plots){
     geom_vline(aes(xintercept = snowmelt_doy_infilled, color = "snowmelt")) +
     geom_vline(aes(xintercept = snowfall_doy_infilled, color = "snowfall")) +
     geom_vline(data=sumry, 
-               aes(xintercept = sos, color = "spring")) +
+               aes(xintercept = sos, color = "greenup")) +
     geom_vline(data=sumry, 
                aes(xintercept = pop, color = "peak")) +
     geom_vline(data=sumry, 
-               aes(xintercept = eos, color = "fall")) +
+               aes(xintercept = eos, color = "senescence")) +
     facet_grid(year ~ sensornode) +
-    ylim(0.34,0.475)+
+   ylim(0.25, 0.5)+
     scale_colour_manual(name="estimate dates",values=cols)+ 
-                       #guide = guide_legend())+
     theme(axis.text.x=element_text(angle = 90, hjust = 1)) +
     geom_label(data=rmses, aes(x=300, y=0.46, label = round(rmse,3)), size=2)+ 
     ylab('Green Chromatic Coordinate (filtered)')+
     ggtitle("phenology time series all years"))%>%
-  #geom_label(data=rmses, aes(x=300, y=0.5, label = round(rmse,3)), size=2)) %>%
-  ggsave(file='plots/beckfit_max_infilled_allyrs_overplotted_with_phenometrics.jpg', ., width = 25, height = 8)
+  ggsave(file='ms_plots/beckfit_max_infilled_allyrs_overplotted_with_phenometrics.jpg', ., width = 25, height = 8)
+  
+pdf('ms_plots/beckfit_multipage.pdf', width = 10, height =7)
+nodesets = list(
+  c(1,  6,  7,  8,  9,10),
+  c( 11, 12, 13, 14, 15),
+  c( 16, 17, 19, 20, 21)
+)
+  for (nodes in 1: length(nodesets)){
+    myplot <-ggplot(with_preds %>% filter(sensornode %in%nodesets[[nodes]]), aes(x = doy)) +
+      geom_line(aes(y = max_infilled_pred), color='grey', size=2) +
+      geom_point(aes(y = max_filtered, group = year), color = "black", size = 0.5) +
+      geom_vline(aes(xintercept = snowmelt_doy_infilled, color = "snowmelt")) +
+      geom_vline(aes(xintercept = snowfall_doy_infilled, color = "snowfall")) +
+      geom_vline(data=sumry%>% filter(sensornode %in%nodesets[[nodes]]), 
+                 aes(xintercept = sos, color = "spring")) +
+      geom_vline(data=sumry%>% filter(sensornode %in%nodesets[[nodes]]), 
+                 aes(xintercept = pop, color = "peak")) +
+      geom_vline(data=sumry%>% filter(sensornode %in%nodesets[[nodes]]), 
+                 aes(xintercept = eos, color = "fall")) +
+      facet_grid(year~ sensornode) +
+      xlab('day of year')+
+      ylim(0.25, 0.5)+
+      scale_x_continuous(limits = c(125, 325), breaks = c(200, 300)) +
+      scale_colour_manual(name="estimate dates",values=cols)+ 
+      theme(axis.text.x=element_text(angle = 90, hjust = 1)) +
+      geom_label(data=rmses %>%
+                   filter(sensornode %in%nodesets[[nodes]]), aes(x=300, y=0.46, label = round(rmse,3)), size=2)+ 
+      ylab('Green Chromatic Coordinate (filtered)')+
+      ggtitle(paste0("phenology time series"))
+    print(myplot)
+  }
+  dev.off()
+  
 
-
-#sce space for time graph here
-#how snowmelt constrains greenup over time
-time_pop_peak=ggplot(data=sumry%>%filter(!is.na(pop)&!is.na(peak)),
-                aes(x=pop, y=peak, group=sensornode))+
-  #geom_smooth(method='lm', aes(color=sensornode), se=FALSE)+
-  geom_smooth(method='lm', se=FALSE, color='darkgrey')+
-  geom_point(aes(shape=year))+
-  geom_abline(slope=1, intercept=20, color='black', size=1, linetype='dashed')+
-  labs(x='timing_of_peak', y='magnitude_of_peak')+
-  #note some oddity, 21 isn't showing upin lines and is on the odd side
-  # geom_line(data=sumry%>%filter(sensornode==21), aes(x=snowmelt_doy_infilled, y=sos,),
-  #           color="black")+
-  #ggtitle('snowmelt strongly constrains \n interannual variation in greenup')+
-  #ggtitle('start of season')+ 
-  theme(plot.title = element_text(size = 10, face = "bold"))+
-  guides(color = FALSE, shape=FALSE)
+  #one sample for the main fig
+  myplot <-ggplot(with_preds %>% filter(sensornode == 19&year>2017), aes(x = doy)) +
+    geom_line(aes(y = max_infilled_pred), color='grey', size=2) +
+    geom_point(aes(y = max_filtered, group = year), color = "black", size = 0.5) +
+    geom_vline(aes(xintercept = snowmelt_doy_infilled, color = "snowmelt")) +
+    geom_vline(aes(xintercept = snowfall_doy_infilled, color = "snowfall")) +
+    geom_vline(data=sumry%>% filter(sensornode == 19&year>2017), 
+               aes(xintercept = sos, color = "spring")) +
+    geom_vline(data=sumry%>% filter(sensornode == 19&year>2017), 
+               aes(xintercept = pop, color = "peak")) +
+    geom_vline(data=sumry%>% filter(sensornode == 19&year>2017), 
+               aes(xintercept = eos, color = "fall")) +
+    facet_grid(year~.) +
+    #ylim(0.3, 0.45)+
+    scale_colour_manual(name="estimate dates",values=cols)+ 
+    theme(axis.text.x=element_text(angle = 90, hjust = 1)) +
+    geom_label(data=rmses %>%
+                 filter(sensornode == 19&year>2017), aes(x=300, y=0.46, label = round(rmse,3)), size=3)+ 
+    ylab('Green Chromatic Coordinate (filtered)')+
+    xlab('day of year')+
+    scale_y_continuous(limits = c(0.33, 0.48), breaks = c(0.35, 0.4, 0.45)) +
+    scale_x_continuous(limits = c(125, 325), breaks = c(200, 300)) +
+    ggtitle(paste0("phenology time series example\n (node 19)"))+
+    theme_classic()+
+    theme(legend.position = 'none')
+  ggsave(myplot, file = 'ms_plots/beck_fit_example_node_19.jpg', width =4, height =6)
+  
 }
