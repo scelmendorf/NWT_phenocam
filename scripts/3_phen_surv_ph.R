@@ -278,6 +278,24 @@ phen_data_eos_pred = format_phen(phen_data_eos_pred)
 #define full models for prediction
 # note definitely some things are collinear - but retained bc they explain
 # excess variation
+phen_data_sos = phen_data_sos %>%
+  mutate(daylength = chillR::daylength(latitude = 40.052, JDay=yday)$Daylength)
+
+phen_data_sos_pred = phen_data_sos_pred  %>%
+  mutate(daylength = chillR::daylength(latitude = 40.052, JDay=yday)$Daylength)
+
+phen_data_pop = phen_data_pop %>%
+  mutate(daylength = chillR::daylength(latitude = 40.052, JDay=yday)$Daylength)
+
+phen_data_pop_pred = phen_data_pop_pred  %>%
+  mutate(daylength = chillR::daylength(latitude = 40.052, JDay=yday)$Daylength)
+
+phen_data_eos = phen_data_eos %>%
+  mutate(daylength = chillR::daylength(latitude = 40.052, JDay=yday)$Daylength)
+
+phen_data_eos_pred = phen_data_eos_pred  %>%
+  mutate(daylength = chillR::daylength(latitude = 40.052, JDay=yday)$Daylength)
+
 
 #full model
 sos_all = glm(formula = status ~ GDD + days_since_snow+
@@ -290,17 +308,28 @@ sos_all = glm(formula = status ~ GDD + days_since_snow+
 #coxph
 library (survival)
 
+#does not know how to pspline it
+fit_sos_a <- coxph(Surv(last_day, yday, status) ~
+                   GDD + pspline (days_since_snow)+
+                   moist_7d + temp_7d +
+                     strata(sensornode),
+             data=phen_data_sos %>%
+               ungroup())
+
 fit_sos <- coxph(Surv(last_day, yday, status) ~
                    GDD + days_since_snow+
                    moist_7d + temp_7d,
-             data=phen_data_sos %>%
-               ungroup %>%
-               filter(days_since_snow>0),
-             id = subject)
+                 data=phen_data_sos %>%
+                   ungroup %>%
+                   filter(days_since_snow>0))
+zp1 <- cox.zph(fit_sos)
+plot(zp1[2], resid=FALSE)
+plot(zp1[3], resid=FALSE)
+abline(coef(fit_sos)[2] ,0, lty=3)
 
-x <- survfit(fit_sos, newdata = phen_data_sos_pred %>%
-               ungroup %>%
-               filter(days_since_snow>0),
+x <- survfit(fit_sos_a, newdata = phen_data_sos_pred %>%
+               ungroup() %>%
+               select(-sensornode),
              id = subject)
 
 #actual predictions
@@ -322,8 +351,38 @@ fit_sos_2 <- coxph(Surv(last_day, days_since_snow, status) ~
                  data=phen_data_sos %>%
                    ungroup %>%
                    filter(days_since_snow>0) %>%
-                   mutate(last_day = days_since_snow-1),
-                 id = subject)
+                   mutate(last_day = days_since_snow-1))
+
+fit_sos_3 <- coxph(Surv(last_day, days_since_snow, status) ~
+                     GDD + daylength+
+                     moist_7d + temp_7d,
+                   data=phen_data_sos %>%
+                     ungroup %>%
+                     filter(days_since_snow>0) %>%
+                     mutate(last_day = days_since_snow-1))
+
+fit_sos_4 <- coxph(Surv(last_day, days_since_snow, status) ~
+                     pspline(daylength)+ GDD +
+                     moist_7d + temp_7d,
+                   data=phen_data_sos %>%
+                     ungroup %>%
+                     filter(days_since_snow>0) %>%
+                     mutate(last_day = days_since_snow-1))
+
+
+zp1 <- cox.zph(fit_sos_2)
+plot(zp1[2], resid=FALSE)
+plot(zp1[3], resid=FALSE)
+abline(coef(fit_sos_2)[3] ,0, lty=3)
+
+fit_sos_2_a <- coxph(Surv(last_day, days_since_snow, status) ~
+                     GDD + yday+
+                     pspline(moist_7d) + temp_7d,
+                   data=phen_data_sos %>%
+                     ungroup %>%
+                     filter(days_since_snow>0) %>%
+                     mutate(last_day = days_since_snow-1))
+print(fit_sos_2_a, digits =2)
 
 x_2 <- survfit(fit_sos_2, newdata = phen_data_sos_pred %>%
                ungroup %>%
@@ -341,6 +400,7 @@ preds_2 = preds_2 %>%
   mutate(doy_event_pred = snowmelt_doy_infilled+pred)
 
 #6.52 RMSE using coxPH for SOS w forcing off days_since_snow
+#but confusingly *worse* when you put in daylength instead
 Metrics::rmse(preds_2$doy_event, preds_2$doy_event_pred)
 
 ##pop
@@ -491,19 +551,130 @@ Metrics::rmse(preds$doy_event, preds$doy_event_pred)
 #try second method
 fit_eos_2 <- coxph(Surv(last_day, days_since_snow, status) ~
                      GDD + yday+
+                     #GDD + daylength+
+                     #moist_7d + temp_7d + strata(sensornode),
                      moist_7d + temp_7d,
                    data=phen_data_eos %>%
                      ungroup %>%
                      filter(days_since_snow>0) %>%
+                     mutate(last_day = days_since_snow-1))
+
+phen_data_fit = phen_data_eos %>%
+  ungroup %>%
+  filter(days_since_snow>0) %>%
+  mutate(last_day = days_since_snow-1)
+
+phen_data_pred = phen_data_eos_pred %>%
+  ungroup %>%
+  filter(days_since_snow>0) %>%
+  mutate(last_day = days_since_snow-1)
+
+model = fit_eos_2
+
+# x_2 <- survfit(fit_eos_2, newdata = phen_data_eos_pred %>%
+#                  ungroup %>%
+#                  filter(days_since_snow>0) %>%
+#                  mutate(last_day = days_since_snow-1),
+#                id = subject)
+# plot(x_2)
+# #actual predictions
+# preds_2 = data.frame(pred = summary(x_2)$table[,"median"])
+# preds_2$subject = row.names (preds_2)
+# preds_2 = preds_2 %>%
+#   left_join(., phen_data_eos_pred %>%
+#               select(subject, doy_event, snowmelt_doy_infilled) %>%
+#               distinct()) %>%
+#   mutate(doy_event_pred = snowmelt_doy_infilled+pred)
+
+model_cv_surv = function(
+  phen_data_fit, phen_data_pred, model){
+  out = list()
+  for (i in unique (phen_data_fit$sensornode)){
+    phen_data_fit_i = phen_data_fit %>%
+      filter(sensornode != i)
+    phen_data_pred_i = phen_data_pred %>%
+      filter(sensornode == i)
+    mod = update (model, data = phen_data_fit_i %>%
+                    filter(days_since_snow>0))
+    
+    x_2 <- survfit(mod, newdata = phen_data_pred_i %>%
+                     ungroup %>%
+                     filter(days_since_snow>0) %>%
                      mutate(last_day = days_since_snow-1),
                    id = subject)
+        #actual predictions
+    preds_2 = data.frame(pred = summary(x_2)$table[,"median"])
+    preds_2$subject = row.names (preds_2)
+    surv  = preds_2 %>%
+      left_join(., phen_data_eos_pred %>%
+                  select(subject, doy_event, snowmelt_doy_infilled) %>%
+                  distinct()) %>%
+      mutate(doy_event_pred = snowmelt_doy_infilled+pred)
+    out[[i]] = surv
+  }
+  out = out %>%bind_rows()
+  spatial = Metrics::rmse(out$doy_event, out$doy_event_pred)
+  
+  #repeat drop by year
+  out = list()
+  for (i in unique (phen_data_fit$year)){
+    phen_data_fit_i = phen_data_fit %>%
+      filter(year != i)
+    phen_data_pred_i = phen_data_pred %>%
+      filter(year == i)
+    mod = update (model, data = phen_data_fit_i %>%
+                    filter(days_since_snow>0))
+    x_2 <- survfit(mod, newdata = phen_data_pred_i %>%
+                     ungroup %>%
+                     filter(days_since_snow>0) %>%
+                     mutate(last_day = days_since_snow-1),
+                   id = subject)
+    #actual predictions
+    preds_2 = data.frame(pred = summary(x_2)$table[,"median"])
+    preds_2$subject = row.names (preds_2)
+    surv  = preds_2 %>%
+      left_join(., phen_data_eos_pred %>%
+                  select(subject, doy_event, snowmelt_doy_infilled) %>%
+                  distinct()) %>%
+      mutate(doy_event_pred = snowmelt_doy_infilled+pred)
+    out[[i]] = surv
+  }
+  out = out %>%bind_rows()
+  temporal = Metrics::rmse(out$doy_event, out$doy_event_pred)
+  return(list (spatial = spatial, temporal = temporal))
+}
+
+
+
+
+
+#if you ridge it, then the temp line falls out,
+#but depends what you set theta too...this all seems
+# complicated.
+fit_eos_2_ridge <- coxph(Surv(last_day, days_since_snow, status) ~
+                     #GDD + yday+
+                     ridge(GDD,daylength,
+                     #moist_7d + temp_7d + strata(sensornode),
+                     moist_7d,temp_7d, theta=2),
+                   data=phen_data_eos %>%
+                     ungroup %>%
+                     filter(days_since_snow>0) %>%
+                     mutate(last_day = days_since_snow-1))
+
+
+tst = predict(fit_eos_2,
+              newdata = phen_data_eos %>%
+                ungroup %>%
+                filter(days_since_snow>0) %>%
+                mutate(last_day = days_since_snow-1),
+              id = subject)
 
 x_2 <- survfit(fit_eos_2, newdata = phen_data_eos_pred %>%
                  ungroup %>%
                  filter(days_since_snow>0) %>%
                  mutate(last_day = days_since_snow-1),
                id = subject)
-
+plot(x_2)
 #actual predictions
 preds_2 = data.frame(pred = summary(x_2)$table[,"median"])
 preds_2$subject = row.names (preds_2)
@@ -514,6 +685,7 @@ preds_2 = preds_2 %>%
   mutate(doy_event_pred = snowmelt_doy_infilled+pred)
 
 #9.143779 RMSE using coxPH for eos w forcing off days_since_snow
+#ends up similar (9.38 if you use daylength)
 Metrics::rmse(preds_2$doy_event, preds_2$doy_event_pred)
 
 
