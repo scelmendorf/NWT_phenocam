@@ -9,7 +9,7 @@ statements at the top. It is a work in progress
 
 
 ## Processing details
-- `0_download_data.R` will download 2 data packages from EDI.
+- `0_download_data.R` will download 3 data packages from EDI.
   - The phenocam data v2 (knb-lter-nwt.192.2)  
 Elwood, K., J. Smith, and Niwot Ridge LTER. 2021. Time-lapse camera (phenocam)
 imagery of Sensor Network plots from 2017 to ongoing ver 2.
@@ -19,6 +19,11 @@ Environmental Data Initiative.`
 Morse, J. and Niwot Ridge LTER. 2021. Saddle catchment
 sensor network data, 2017- ongoing. ver 3. Environmental Data Initiative.
 https://doi.org/10.6073/pasta/c1a7a58e355112c362d35092071fa1f0 (Accessed 2021-10-22).
+
+  - 5cm multispectral UAV imagery (knb-lter-nwt.67.1)
+Wigmore, O. and Niwot Ridge LTER. 2021. 5cm multispectral imagery from UAV
+campaign at Niwot Ridge, 2017 ver 1. Environmental Data Initiative.
+https://doi.org/10.6073/pasta/a4f57c82ad274aa2640e0a79649290ca (Accessed 2022-07-06).
 
 - `1a_prep_data.R`  
 Does some initial preprocessing of the phenocam and met data,
@@ -38,7 +43,7 @@ dropped below freezing, but this approach yielded some peculiar results, and
 after some reading that indicates the soil moisture may be roughly accurate
 even a few degrees below 0, I left in those values. They may not be perfectly
 accurate, although for the phenology data, moisture values below freezing are 
-rarely used.
+rarely used since they don't tend to occur in the weeks prior to greenup.
 
 - `1b_infill_met.R Infills the daily met data. Met data are infilled sequentially
 starting with air temperature, so that infilled values (e.g. air T at a node
@@ -54,7 +59,7 @@ data/all_met_infilled_seq_6_no_freeze_fill.rds, which is used in subsequent
 analysis. It also generates 5 intermediary file
 all_met_infilled_seq_1...5_no_freeze_fill.rds. These are for sanity making
 in case you need to go back and monkey with the script again or want to run 
-one step at a time and go do other things with your computer inbetween, 
+one step at a time and go do other things with your computer in between, 
 because each one takes ages.
 
 - `2_analyze_saddle_phenocams.R` generates phenometrics from the phenocam data
@@ -75,5 +80,7 @@ using AIC to select the best model for each phenophase and then doing leave-one-
 cross-validation, sequentially dropping nodes and years. Generates some figures
 at the end.
 
+- `4_plot_locations.R` makes some nice plots of the locations of the study
 
 
+- plots used in the manuscript are rendered to /ms_plots; others to /plots
