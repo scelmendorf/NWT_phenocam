@@ -54,6 +54,44 @@ met_data <- met_data %>%
   mutate(soilmoisture_b_5cm_avg_ave = 100*soilmoisture_b_5cm_avg_ave)
 
 
+# a few descriptive stats on the variability
+stats = met_data %>%
+  mutate(month = lubridate::month(ymd)) %>%
+  filter(month %in% c(6,7,8)) %>%
+  group_by(year, sensornode) %>%
+  summarize(airT = mean (airtemp_avg_ave),
+            snowmelt = mean(snowmelt_doy_infilled),
+            soiltemp_5cm_avg_ave = mean(soiltemp_5cm_avg_ave),
+            soilmoisture_b_5cm_avg_ave = mean(soilmoisture_b_5cm_avg_ave),
+            nrow = dplyr::n(),.groups = 'drop')
+
+yr_variability =
+  stats %>%
+  pivot_longer(cols = c("airT",                      
+                        "snowmelt","soiltemp_5cm_avg_ave","soilmoisture_b_5cm_avg_ave"),
+               names_to = 'parameter') %>%
+  group_by(sensornode, parameter) %>%
+  summarize(sd = sd(value, na.rm = TRUE),
+            min = min(value, na.rm = TRUE),
+            max = max(value, na.rm = TRUE),
+            dif = max-min, .groups = 'drop') %>%
+  group_by(parameter) %>%
+  summarize(avg_sd = mean (sd),avg_dif = mean (dif))
+
+node_variability =
+  stats %>%
+  pivot_longer(cols = c("airT",                      
+                        "snowmelt","soiltemp_5cm_avg_ave","soilmoisture_b_5cm_avg_ave"),
+               names_to = 'parameter') %>%
+  group_by(year, parameter) %>%
+  summarize(sd = sd(value, na.rm = TRUE),
+            min = min(value, na.rm = TRUE),
+            max = max(value, na.rm = TRUE),
+            dif = max-min, .groups = 'drop') %>%
+  group_by(parameter) %>%
+  summarize(avg_sd = mean (sd),avg_dif = mean (dif))
+
+
 ## define functions to process the sumry data into
 # a consistent format per phenophase
 make_phen_data <- function(sumry_data, phenophase) {
