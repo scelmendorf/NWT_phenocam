@@ -31,8 +31,8 @@ first doy after doy 100 where the 5d running mean diurnal temperature range at
 5cm exceeds the mean 5cm dtr at recorded snowmelt at that node. Note that snowfall
 occurred more synchronously than snowmelt across the nodes, so snowfall dates were assigned by inspection in some  cases. Where node-specific met data were absent due to sensor failures, the snowmelt dates are not infilled, as the ability of the infilling to exactly replicate temperatures around the freezing point was unknown. This script also pads out missing data to 365 days per year. Generates files:
 
-data/all_met_no_freezefill.csv
-data/phen_clim_all.csv'
+  - data/all_met_no_freezefill.csv
+  - data/phen_clim_all.csv'
 
 Note I had experimented with infilling moisture values when soil temperatures
 dropped below freezing, but this approach yielded some peculiar results. Some
@@ -72,7 +72,7 @@ implementation - though this does not affect the results much)
 were snow-covered at the time of measurement. These values are infilled
 based on the sensor-specific GCC values at snowmelt (random draws
 from a normal distribution based on the empirical mean +sd for that node).
-  - Generates files data_deriv/phenometrics.csv
+Generates files data_deriv/phenometrics.csv
  
 - `3_phen_surv.R` runs survival models on the derived phenometrics,
 using AIC to select the best model for each phenophase and then doing leave-one-out
