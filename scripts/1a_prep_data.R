@@ -5,15 +5,7 @@
 # where it exists
 
 # Setup ########################################################################
-# these are only needed if you are downloading the data again off EDI
-# remotes::install_github("EDIorg/EDIutils")
-# library (EDIutils) #note this not working on laptop now that I have updated
-# my R version
 library(tidyverse)
-# library (phenoCDM) does not work with current setup? need to install local or
-# devtools::install_github("bnasr/phenoCDM")
-# library(phenoCDM)
-# library (rjags)
 library(magrittr)
 
 # whether to remake a zillion plots
@@ -21,7 +13,7 @@ plot_data <- TRUE
 
 # Set paths to local data  #####################################################
 
-path2data = 'data/'
+path2data <- "data/"
 
 # read and process met data #####################################################
 
@@ -64,12 +56,12 @@ nodes <- c(
 
 for (node in nodes) {
   df <- readr::read_csv(
-    paste0(path2data , "sn_", node, "_tenminute.jm.data.csv"),
+    paste0(path2data, "sn_", node, "_tenminute.jm.data.csv"),
     guess_max = 1000000, na = c("", "NaN")
   )
   # remove flagged values
   df <- rm_flag_values(df)
-  
+
   all_met[[node]] <- df %>%
     mutate(ymd = lubridate::date(date)) %>%
     select(-contains("flag")) %>%
@@ -78,35 +70,35 @@ for (node in nodes) {
     group_by(sensornode, ymd) %>%
     # summarise_at(vars("soilmoisture_a_5cm_avg", "soilmoisture_a_30cm_avg"),
     summarise_at(vars(contains("avg")),
-                 .funs = list(ave = ~ mean(., na.rm = TRUE)),
-                 .groups = "drop"
+      .funs = list(ave = ~ mean(., na.rm = TRUE)),
+      .groups = "drop"
     ) %>%
     full_join(., df %>%
-                mutate(ymd = lubridate::date(date)) %>%
-                select(-contains("flag")) %>%
-                # even though dts is just a sample not an ave, rename so the rest
-                # of the logic cors
-                # rename(dts_avg = dts_sample) %>%
-                select(-LTER_site, -local_site) %>%
-                group_by(sensornode, ymd) %>%
-                summarise(
-                  snow_90 = quantile(dts_sample, 0.9, na.rm = TRUE),
-                  .groups = "drop"
-                )) %>%
+      mutate(ymd = lubridate::date(date)) %>%
+      select(-contains("flag")) %>%
+      # even though dts is just a sample not an ave, rename so the rest
+      # of the logic cors
+      # rename(dts_avg = dts_sample) %>%
+      select(-LTER_site, -local_site) %>%
+      group_by(sensornode, ymd) %>%
+      summarise(
+        snow_90 = quantile(dts_sample, 0.9, na.rm = TRUE),
+        .groups = "drop"
+      )) %>%
     full_join(., df %>%
-                mutate(ymd = lubridate::date(date)) %>%
-                select(-contains("flag")) %>%
-                # even though dts is just a sample not an ave, rename so the rest
-                # of the logic cors
-                # rename(dts_avg = dts_sample) %>%
-                select(-LTER_site, -local_site) %>%
-                group_by(sensornode, ymd) %>%
-                summarise(
-                  max_t = quantile(soiltemp_5cm_avg, 0.9, na.rm = TRUE),
-                  min_t = quantile(soiltemp_5cm_avg, 0.1, na.rm = TRUE),
-                  .groups = "drop"
-                ) %>%
-                mutate(soiltemp_dtr = max_t - min_t))
+      mutate(ymd = lubridate::date(date)) %>%
+      select(-contains("flag")) %>%
+      # even though dts is just a sample not an ave, rename so the rest
+      # of the logic cors
+      # rename(dts_avg = dts_sample) %>%
+      select(-LTER_site, -local_site) %>%
+      group_by(sensornode, ymd) %>%
+      summarise(
+        max_t = quantile(soiltemp_5cm_avg, 0.9, na.rm = TRUE),
+        min_t = quantile(soiltemp_5cm_avg, 0.1, na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      mutate(soiltemp_dtr = max_t - min_t))
 }
 
 all_met <- all_met %>%
@@ -118,7 +110,7 @@ options(warn = 1)
 # sn 15 the soil_temp_30 is bad
 all_met <- all_met %>%
   mutate(soiltemp_30cm_avg_ave = ifelse(sensornode == 15, NA,
-                                        soiltemp_30cm_avg_ave
+    soiltemp_30cm_avg_ave
   ))
 
 ggplot(all_met, aes(x = ymd, y = soilmoisture_b_5cm_avg_ave)) +
@@ -141,10 +133,10 @@ snowmelt <- readr::read_csv(
   guess_max = 1000000, na = c("", "NaN")
 ) %>%
   mutate(snowmelt_date = dplyr::if_else(confidence_snow_off == "high",
-                                        lubridate::ymd(snow_off), lubridate::ymd(NA)
+    lubridate::ymd(snow_off), lubridate::ymd(NA)
   )) %>%
   mutate(snowfall_date = dplyr::if_else(confidence_snow_on == "high",
-                                        lubridate::ymd(snow_on), lubridate::ymd(NA)
+    lubridate::ymd(snow_on), lubridate::ymd(NA)
   )) %>%
   mutate(
     snowmelt_doy = lubridate::yday(snowmelt_date),
@@ -155,25 +147,25 @@ snowmelt <- readr::read_csv(
 
 # plot phenocam vs various sensor node met parameters ###########################
 if (plot_data) {
-  
+
   # plot temperature vs phenocam GCC
   # figure out scaling factor in order to overplot gcc overtop temperature
   var <- "airtemp_avg_ave"
   var_mean <- mean(all_met[[var]], na.rm = TRUE)
   var_sd <- sd(all_met[[var]], na.rm = TRUE)
-  
+
   phen_var <- "max_filtered"
   phen_mean <- mean(all_phen[[phen_var]], na.rm = TRUE)
   phen_var_sd <- sd(all_phen[[phen_var]], na.rm = TRUE)
-  
+
   # if we were to scale both, we would subtract each one's mean and add to
   # each sd.
   # so for gcc - need to subtract the mean gcc, divide by the gcc sd
   # then multiply by the met sd and add in the met mean
   coeff <- mean(all_phen[["max_filtered"]], na.rm = TRUE) / mean(all_met[[var]],
-                                                                 na.rm = TRUE
+    na.rm = TRUE
   )
-  
+
   # it looks to track both air and soilT pretty well,
   # but not as jaggedy - might better track
   # the 5d running mean of soilT or something?
@@ -184,90 +176,90 @@ if (plot_data) {
   # 13(WM), 14(DM1), 15(DM3), 16(DM2), 19(SA) spring tracks soil temp
   # nodes 9(DM1), 10(DM1), 21(DM2), 21(DM2), spring lags increase in soil temp.
   (ggplot(all_met, aes(x = ymd)) +
-      geom_line(aes(y = airtemp_avg_ave), color = "red") +
-      geom_line(aes(y = soiltemp_5cm_avg_ave), color = "orange") +
-      geom_line(aes(y = soiltemp_30cm_avg_ave), color = "green") +
-      geom_line(
-        data = all_phen,
-        aes(y = (((max_filtered - phen_mean) / phen_var_sd) * var_sd) + var_mean),
-        color = "blue"
-      ) +
-      scale_y_continuous(
-        # Features of the first axis
-        name = "airtemp (red)/soiltemp_5(orange)/soiltemp_30(green)",
-        # Add a second axis and specify its features
-        sec.axis = sec_axis(~ (((. - var_mean) / var_sd) * phen_var_sd) + phen_mean,
-                            name = "max_filtered (blue)"
-        )
-      ) +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-      facet_wrap(~sensornode)) %>%
+    geom_line(aes(y = airtemp_avg_ave), color = "red") +
+    geom_line(aes(y = soiltemp_5cm_avg_ave), color = "orange") +
+    geom_line(aes(y = soiltemp_30cm_avg_ave), color = "green") +
+    geom_line(
+      data = all_phen,
+      aes(y = (((max_filtered - phen_mean) / phen_var_sd) * var_sd) + var_mean),
+      color = "blue"
+    ) +
+    scale_y_continuous(
+      # Features of the first axis
+      name = "airtemp (red)/soiltemp_5(orange)/soiltemp_30(green)",
+      # Add a second axis and specify its features
+      sec.axis = sec_axis(~ (((. - var_mean) / var_sd) * phen_var_sd) + phen_mean,
+        name = "max_filtered (blue)"
+      )
+    ) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    facet_wrap(~sensornode)) %>%
     ggsave(file = "plots/gcc_vs_all_temps.jpg", ., width = 5, height = 5)
-  
-  
+
+
   (ggplot(all_met, aes(x = ymd)) +
-      geom_point(aes(y = airtemp_avg_ave, color = commtype), size = 0.5) +
-      geom_point(
-        data = all_phen,
-        aes(y = (((max_filtered - phen_mean) / phen_var_sd) * var_sd) + var_mean),
-        color = "blue", size = 0.5
-      ) +
-      scale_y_continuous(
-        # Features of the first axis
-        name = "airtemp (red)/soiltemp_5(orange)/soiltemp_30(green)",
-        # Add a second axis and specify its features
-        sec.axis = sec_axis(~ (((. - var_mean) / var_sd) * phen_var_sd) + phen_mean,
-                            name = "max_filtered (blue)"
-        )
-      ) +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-      facet_wrap(~sensornode))
-  
-  
-  
-  
+    geom_point(aes(y = airtemp_avg_ave, color = commtype), size = 0.5) +
+    geom_point(
+      data = all_phen,
+      aes(y = (((max_filtered - phen_mean) / phen_var_sd) * var_sd) + var_mean),
+      color = "blue", size = 0.5
+    ) +
+    scale_y_continuous(
+      # Features of the first axis
+      name = "airtemp (red)/soiltemp_5(orange)/soiltemp_30(green)",
+      # Add a second axis and specify its features
+      sec.axis = sec_axis(~ (((. - var_mean) / var_sd) * phen_var_sd) + phen_mean,
+        name = "max_filtered (blue)"
+      )
+    ) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    facet_wrap(~sensornode))
+
+
+
+
   (ggplot(all_met, aes(x = ymd)) +
-      geom_point(aes(y = airtemp_avg_ave, color = commtype), size = 0.5) +
-      geom_point(
-        data = all_phen,
-        aes(y = (((max_filtered - phen_mean) / phen_var_sd) * var_moist_sd) +
-              var_moist_mean),
-        color = "blue", size = 0.5
-      ) +
-      scale_y_continuous(
-        # Features of the first axis
-        name = "soilmoist_5",
-        # Add a second axis and specify its features
-        sec.axis = sec_axis(~ (((. - var_moist_mean) / var_moist_sd) * phen_var_sd) +
-                              phen_mean, name = "max_filtered (blue)")
-      ) +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-      facet_wrap(~sensornode))
-  
+    geom_point(aes(y = airtemp_avg_ave, color = commtype), size = 0.5) +
+    geom_point(
+      data = all_phen,
+      aes(y = (((max_filtered - phen_mean) / phen_var_sd) * var_moist_sd) +
+        var_moist_mean),
+      color = "blue", size = 0.5
+    ) +
+    scale_y_continuous(
+      # Features of the first axis
+      name = "soilmoist_5",
+      # Add a second axis and specify its features
+      sec.axis = sec_axis(~ (((. - var_moist_mean) / var_moist_sd) * phen_var_sd) +
+        phen_mean, name = "max_filtered (blue)")
+    ) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    facet_wrap(~sensornode))
+
   # the lags behind air temp seem more similar among nodes -
   # spring they all lag the increase in airT by a hit
   (ggplot(all_met, aes(x = ymd)) +
-      geom_line(aes(y = airtemp_avg_ave), color = "red") +
-      # geom_line(aes(y=soiltemp_5cm_avg_ave), color="orange")+
-      # geom_line(aes(y=soiltemp_30cm_avg_ave), color="green")+
-      geom_line(data = all_phen, aes(y = (((max_filtered - phen_mean) / phen_var_sd) * var_sd) + var_mean), color = "blue") +
-      scale_y_continuous(
-        # Features of the first axis
-        name = "airtemp (red)",
-        # Add a second axis and specify its features
-        sec.axis = sec_axis(~ (((. - var_mean) / var_sd) * phen_var_sd) + phen_mean,
-                            name = "max_filtered (blue)"
-        )
-      ) +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-      facet_wrap(~sensornode)) %>%
+    geom_line(aes(y = airtemp_avg_ave), color = "red") +
+    # geom_line(aes(y=soiltemp_5cm_avg_ave), color="orange")+
+    # geom_line(aes(y=soiltemp_30cm_avg_ave), color="green")+
+    geom_line(data = all_phen, aes(y = (((max_filtered - phen_mean) / phen_var_sd) * var_sd) + var_mean), color = "blue") +
+    scale_y_continuous(
+      # Features of the first axis
+      name = "airtemp (red)",
+      # Add a second axis and specify its features
+      sec.axis = sec_axis(~ (((. - var_mean) / var_sd) * phen_var_sd) + phen_mean,
+        name = "max_filtered (blue)"
+      )
+    ) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    facet_wrap(~sensornode)) %>%
     ggsave(file = "plots/gcc_vs_air_temp.jpg", ., width = 5, height = 5)
-  
+
   # Plot greenness vs moilsture
   var_moist <- "soilmoisture_b_5cm_avg_ave"
   var_moist_mean <- mean(all_met[[var_moist]], na.rm = TRUE)
   var_moist_sd <- sd(all_met[[var_moist]], na.rm = TRUE)
-  
+
   all_met <- all_met %>%
     mutate(
       commtype =
@@ -279,39 +271,39 @@ if (plot_data) {
           TRUE ~ "UNKNOWN"
         )
     )
-  
+
   (ggplot(all_met, aes(x = ymd)) +
-      geom_point(aes(y = soilmoisture_b_5cm_avg_ave, color = commtype), size = 0.5) + # color = "purple", size = 0.5)+
-      geom_point(
-        data = all_phen,
-        aes(y = (((max_filtered - phen_mean) / phen_var_sd) * var_moist_sd) +
-              var_moist_mean),
-        color = "blue", size = 0.5
-      ) +
-      scale_y_continuous(
-        # Features of the first axis
-        name = "soilmoist_5",
-        # Add a second axis and specify its features
-        sec.axis = sec_axis(~ (((. - var_moist_mean) / var_moist_sd) * phen_var_sd) +
-                              phen_mean, name = "max_filtered (blue)")
-      ) +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-      facet_wrap(~sensornode)) %>%
+    geom_point(aes(y = soilmoisture_b_5cm_avg_ave, color = commtype), size = 0.5) + # color = "purple", size = 0.5)+
+    geom_point(
+      data = all_phen,
+      aes(y = (((max_filtered - phen_mean) / phen_var_sd) * var_moist_sd) +
+        var_moist_mean),
+      color = "blue", size = 0.5
+    ) +
+    scale_y_continuous(
+      # Features of the first axis
+      name = "soilmoist_5",
+      # Add a second axis and specify its features
+      sec.axis = sec_axis(~ (((. - var_moist_mean) / var_moist_sd) * phen_var_sd) +
+        phen_mean, name = "max_filtered (blue)")
+    ) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    facet_wrap(~sensornode)) %>%
     ggsave(file = "plots/gcc_vs_moist.jpg", ., width = 8, height = 5)
-  
+
   # plot internnual variability
   # Plot variation over years in greenness
   (ggplot(all_phen %>% mutate(year = factor(year)), aes(x = doy)) +
-      geom_point(aes(y = max_filtered, group = year, color = year)) +
-      geom_vline(
-        data = snowmelt %>% mutate(year = factor(year)),
-        aes(xintercept = snowmelt_doy, group = year, color = year)
-      ) +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-      ggtitle("max gcc (not infilled) for each node in each year \n vertical lines show snowmelt date") +
-      facet_wrap(~sensornode)) %>%
+    geom_point(aes(y = max_filtered, group = year, color = year)) +
+    geom_vline(
+      data = snowmelt %>% mutate(year = factor(year)),
+      aes(xintercept = snowmelt_doy, group = year, color = year)
+    ) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    ggtitle("max gcc (not infilled) for each node in each year \n vertical lines show snowmelt date") +
+    facet_wrap(~sensornode)) %>%
     ggsave(file = "plots/max_gcc_seasonality.jpg", ., width = 8, height = 5)
-  
+
   # Plot variation in soil temperature
   # the soil temps aren't particularly strikingly different between the years
   # though they do warm up a bit earlier in 2018 than 2019 - it really
@@ -325,44 +317,44 @@ if (plot_data) {
       ),
     aes(x = doy)
   ) +
-      geom_point(aes(y = soiltemp_5cm_avg_ave, group = year, color = year),
-                 size = 0.5, alpha = 0.1
-      ) +
-      geom_smooth(aes(y = soiltemp_5cm_avg_ave, group = year, color = year),
-                  size = 0.5
-      ) +
-      geom_vline(
-        data = snowmelt %>% mutate(year = factor(year)),
-        aes(xintercept = snowmelt_doy, group = year, color = year)
-      ) +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-      ggtitle("5cm soil temp for each node in each year \n vertical lines show snowmelt date") +
-      facet_wrap(~sensornode)) %>%
+    geom_point(aes(y = soiltemp_5cm_avg_ave, group = year, color = year),
+      size = 0.5, alpha = 0.1
+    ) +
+    geom_smooth(aes(y = soiltemp_5cm_avg_ave, group = year, color = year),
+      size = 0.5
+    ) +
+    geom_vline(
+      data = snowmelt %>% mutate(year = factor(year)),
+      aes(xintercept = snowmelt_doy, group = year, color = year)
+    ) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    ggtitle("5cm soil temp for each node in each year \n vertical lines show snowmelt date") +
+    facet_wrap(~sensornode)) %>%
     ggsave(file = "plots/soil_temp_seasonality.jpg", ., width = 8, height = 5)
-  
+
   # Plot variation in air temperature
   # the air temps aren't particularly strikingly different between the years
   # though they do warm up a bit earlier in 2018 than 2019 - it really
   # depends where you look, though clearly the daily temps warmer at snowmelt in 2018
   # than 2019 in at sn7, 16 21 etc
-  
+
   (ggplot(all_met %>% mutate(
     year = factor(lubridate::year(ymd)),
     doy = lubridate::yday(ymd)
   ), aes(x = doy)) +
-      geom_point(aes(y = airtemp_avg_ave, group = year, color = year),
-                 size = 0.5, alpha = 0.1
-      ) +
-      geom_smooth(aes(y = airtemp_avg_ave, group = year, color = year), size = 0.5) +
-      geom_vline(
-        data = snowmelt %>% mutate(year = factor(year)),
-        aes(xintercept = snowmelt_doy, group = year, color = year)
-      ) +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-      ggtitle("air temp for each node in each year \n vertical lines show snowmelt date") +
-      facet_wrap(~sensornode)) %>%
+    geom_point(aes(y = airtemp_avg_ave, group = year, color = year),
+      size = 0.5, alpha = 0.1
+    ) +
+    geom_smooth(aes(y = airtemp_avg_ave, group = year, color = year), size = 0.5) +
+    geom_vline(
+      data = snowmelt %>% mutate(year = factor(year)),
+      aes(xintercept = snowmelt_doy, group = year, color = year)
+    ) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    ggtitle("air temp for each node in each year \n vertical lines show snowmelt date") +
+    facet_wrap(~sensornode)) %>%
     ggsave(file = "plots/air_temp_seasonality.jpg", ., width = 8, height = 5)
-  
+
   # Plot variation in soil moisture
   # the soil moistures are more strikingly different among yrs
   # though 2017 largely missing which isn't so helpful
@@ -372,24 +364,24 @@ if (plot_data) {
     doy = lubridate::yday(ymd)
   ), aes(x = doy)) +
     geom_point(aes(y = soilmoisture_b_5cm_avg_ave, group = year, color = year),
-               size = 0.5, alpha = 0.5
+      size = 0.5, alpha = 0.5
     )) +
-      ggtitle("soil moisture 5cm for each node in each year \n vertical lines show snowmelt date") +
-      facet_wrap(~sensornode)) %>%
+    ggtitle("soil moisture 5cm for each node in each year \n vertical lines show snowmelt date") +
+    facet_wrap(~sensornode)) %>%
     ggsave(file = "plots/soil_moist5_seasonality.jpg", ., width = 8, height = 5)
-  
+
   (ggplot(all_met %>% mutate(
     year = factor(lubridate::year(ymd)),
     doy = lubridate::yday(ymd)
   ), aes(x = doy)) +
-      geom_point(aes(y = soilmoisture_b_30cm_avg_ave, group = year, color = year),
-                 size = 0.5, alpha = 0.5
-      ) +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-      ggtitle("soil moisture 30 cmfor each node in each year \n vertical lines show snowmelt date") +
-      facet_wrap(~sensornode)) %>%
+    geom_point(aes(y = soilmoisture_b_30cm_avg_ave, group = year, color = year),
+      size = 0.5, alpha = 0.5
+    ) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    ggtitle("soil moisture 30 cmfor each node in each year \n vertical lines show snowmelt date") +
+    facet_wrap(~sensornode)) %>%
     ggsave(file = "plots/soil_moist30_seasonality.jpg", ., width = 8, height = 5)
-  
+
   # Plot variation in snow depth using snow depth sensor - doesn't work
   # the snowdepth sensor pretty much sucks all the time - can see a
   # bit in 15 a comparison among yrs - res there is hardly anything helpful
@@ -398,13 +390,13 @@ if (plot_data) {
     year = factor(lubridate::year(ymd)),
     doy = lubridate::yday(ymd)
   ), aes(x = doy)) +
-      geom_point(aes(y = snow_90, group = year, color = year),
-                 size = 0.5,
-                 alpha = 0.5
-      ) +
-      facet_wrap(~sensornode) +
-      scale_y_continuous(trans = "reverse"))
-  
+    geom_point(aes(y = snow_90, group = year, color = year),
+      size = 0.5,
+      alpha = 0.5
+    ) +
+    facet_wrap(~sensornode) +
+    scale_y_continuous(trans = "reverse"))
+
   options(warn = 1)
   ggplot(all_met %>% mutate(
     year = factor(lubridate::year(ymd)),
@@ -425,8 +417,8 @@ est_sm <- all_met %>%
   left_join(., snowmelt %>% select(sensornode, year, snowmelt_doy)) %>%
   group_by(sensornode) %>%
   mutate(soiltemp_dtr_ma_2 = slider::slide_dbl(soiltemp_dtr, mean,
-                                               .before = 2,
-                                               .after = 2
+    .before = 2,
+    .after = 2
   )) %>%
   ungroup() %>%
   filter(!is.na(snowmelt_doy)) %>%
@@ -434,8 +426,8 @@ est_sm <- all_met %>%
   # figure out mean moving average dtr when that node became snow free
   summarise(soiltemp_dtr_ma_2_avg = mean(soiltemp_dtr_ma_2, na.rm = TRUE)) %>%
   full_join(., all_met %>%
-              group_by(sensornode) %>%
-              mutate(soiltemp_dtr_ma_2 = slider::slide_dbl(soiltemp_dtr, mean, .before = 2, .after = 2))) %>%
+    group_by(sensornode) %>%
+    mutate(soiltemp_dtr_ma_2 = slider::slide_dbl(soiltemp_dtr, mean, .before = 2, .after = 2))) %>%
   # assume snow-covered before that MA date
   mutate(snow_status_2 = ifelse(soiltemp_dtr_ma_2 < soiltemp_dtr_ma_2_avg, "snow_covered", "snow_free")) %>%
   mutate(year = lubridate::year(ymd), doy = lubridate::yday(ymd)) %>%
@@ -469,8 +461,8 @@ est_sf <- all_met %>%
   group_by(sensornode) %>%
   summarise(soiltemp_dtr_ma_2_avg = mean(soiltemp_dtr_ma_2, na.rm = TRUE)) %>%
   full_join(., all_met %>%
-              group_by(sensornode) %>%
-              mutate(soiltemp_dtr_ma_2 = slider::slide_dbl(soiltemp_dtr, mean, .before = 2, .after = 2))) %>%
+    group_by(sensornode) %>%
+    mutate(soiltemp_dtr_ma_2 = slider::slide_dbl(soiltemp_dtr, mean, .before = 2, .after = 2))) %>%
   mutate(snow_status_2 = ifelse(soiltemp_dtr_ma_2 < soiltemp_dtr_ma_2_avg, "snow_covered", "snow_free")) %>%
   mutate(year = lubridate::year(ymd), doy = lubridate::yday(ymd)) %>%
   filter(snow_status_2 == "snow_covered" & doy > 227) %>%
@@ -500,7 +492,7 @@ snowmelt <- snowmelt %>%
       ifelse(!is.na(snowmelt_date), snowmelt_doy, snowmelt_doy_2)
   ) %>%
   mutate(snowmelt_date_infilled = as.Date(snowmelt_doy_infilled - 1,
-                                          origin = paste0(year, "-01-01")
+    origin = paste0(year, "-01-01")
   )) %>%
   left_join(., est_sf %>% rename(
     snowfall_doy_infilled = doy,
@@ -528,19 +520,19 @@ if (plot_data) {
     group_by(sensornode) %>%
     summarise(soiltemp_dtr_ma_2_avg = mean(soiltemp_dtr_ma_2, na.rm = TRUE)) %>%
     full_join(., all_met %>%
-                group_by(sensornode) %>%
-                mutate(
-                  soiltemp_dtr_ma_2 =
-                    slider::slide_dbl(soiltemp_dtr, mean,
-                                      .before = 2,
-                                      .after = 2
-                    )
-                )) %>%
+      group_by(sensornode) %>%
+      mutate(
+        soiltemp_dtr_ma_2 =
+          slider::slide_dbl(soiltemp_dtr, mean,
+            .before = 2,
+            .after = 2
+          )
+      )) %>%
     mutate(snow_status_2 = ifelse(soiltemp_dtr_ma_2 < soiltemp_dtr_ma_2_avg,
-                                  "snow_covered", "snow_free"
+      "snow_covered", "snow_free"
     )) %>%
     mutate(year = lubridate::year(ymd), doy = lubridate::yday(ymd))
-  
+
   # here are the snowmelt dates we def know overplotted soiltemp_dtr
   # the nodes vary a lot in their summer dtrs at 5cm
   # not sure if this is insulation from the veg or differences in moisture
@@ -549,19 +541,19 @@ if (plot_data) {
   # 9, 12, 14, 10 have pretty high daily temp fluctuations
   # of course, this could be something artefact-y like
   # the sensors being shallower at one vs the other
-  
+
   (ggplot(dtr_img, aes(x = ymd, y = soiltemp_dtr)) +
-      geom_line() +
-      facet_wrap(~sensornode) +
-      # geom_vline(data = snowmelt, aes(xintercept = snowmelt_date_infilled),
-      #          color="red")+
-      geom_vline(
-        data = snowmelt, aes(xintercept = snowmelt_date),
-        color = "purple"
-      ) +
-      ggtitle("5 day running mean soil diurnal temperature range \n
+    geom_line() +
+    facet_wrap(~sensornode) +
+    # geom_vline(data = snowmelt, aes(xintercept = snowmelt_date_infilled),
+    #          color="red")+
+    geom_vline(
+      data = snowmelt, aes(xintercept = snowmelt_date),
+      color = "purple"
+    ) +
+    ggtitle("5 day running mean soil diurnal temperature range \n
           observed snowmelt (purple) infilled snowment (red)") +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1))
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
   ) %>%
     ggsave(file = "plots/soil_dtr_with_infilled_snowmelt.jpg", ., width = 8, height = 5)
 }
