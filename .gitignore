@@ -14,7 +14,11 @@ workspace/.RData
 workspace/.Rhistory
 
 #big downloaded from EDI
-data/
+data/U*
+data/p*
+data/a*
+data/s*
+data/nwt_sen*
 
 #just viz plots
 plots/raw_data_plots/

@@ -54,3 +54,32 @@ for (i in (1:length(met_eml$dataset$dataTable))){
   )
 }
 
+#download imagery ####
+
+#Wigmore, O. and Niwot Ridge LTER. 2021. 5cm multispectral imagery from UAV
+#campaign at Niwot Ridge, 2017 ver 1. Environmental Data Initiative.
+#https://doi.org/10.6073/pasta/a4f57c82ad274aa2640e0a79649290ca
+#(Accessed 2022-07-06).
+
+
+#increase timeout for downloading large files
+options(timeout = max(300, getOption("timeout")))
+download.file(url = uav_eml$dataset$otherEntity$physical$distribution$online$url$url,
+              destfile = paste0(path2data, uav_eml$dataset$otherEntity$physical$objectName),
+              mode = 'wget'
+)
+
+#note unix does not like to unzip these in R
+#, so these must be unzipped manually on linux before continuing
+#UAV_clipped_multispec.ow.data/20170814_MultiB_RGBNIR.tif,
+#UAV_clipped_multispec.ow.data/20170814_MultiB_RGBNIR.tfw'
+#UAV_clipped_multispec.ow.data/20170814_MultiB_RGBNIR.tif,
+#UAV_clipped_multispec.ow.data/20170814_MultiB_RGBNIR.tif.aux.xml,
+#UAV_clipped_multispec.ow.data/ClipBoundary_MinRGBNIROverlapExtent.CPG,
+#UAV_clipped_multispec.ow.data/ClipBoundary_MinRGBNIROverlapExtent.dbf,
+#UAV_clipped_multispec.ow.data/ClipBoundary_MinRGBNIROverlapExtent.prj,
+#UAV_clipped_multispec.ow.data/ClipBoundary_MinRGBNIROverlapExtent.sbn,
+#UAV_clipped_multispec.ow.data/ClipBoundary_MinRGBNIROverlapExtent.sbx,
+#UAV_clipped_multispec.ow.data/ClipBoundary_MinRGBNIROverlapExtent.shp,
+#UAV_clipped_multispec.ow.data/ClipBoundary_MinRGBNIROverlapExtent.shp.xml,
+#UAV_clipped_multispec.ow.data/ClipBoundary_MinRGBNIROverlapExtent.shx
