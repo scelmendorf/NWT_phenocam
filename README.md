@@ -72,6 +72,8 @@ implementation - though this does not affect the results much)
 were snow-covered at the time of measurement. These values are infilled
 based on the sensor-specific GCC values at snowmelt (random draws
 from a normal distribution based on the empirical mean +sd for that node).
+
+
 Generates files data_deriv/phenometrics.csv
  
 - `3_phen_surv.R` runs survival models on the derived phenometrics,
