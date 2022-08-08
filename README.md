@@ -8,15 +8,17 @@ scripts in order. Before running the scripts, be sure to make a /plots directory
 
 ## Processing details
 - `0_download_data.R` will download 3 data packages from EDI.
-  - The phenocam data v2 (knb-lter-nwt.192.2)  
-Elwood, K., J. Smith, and Niwot Ridge LTER. 2021. Time-lapse camera (phenocam)
-imagery of Sensor Network plots from 2017 to ongoing ver 2.
-Environmental Data Initiative.`
+  - The phenocam data v2 (knb-lter-nwt.192.3)  
+Elwood, K., J. Smith, S. Elmendorf, and Niwot Ridge LTER. 2022.
+Time-lapse camera (phenocam) imagery of sensor network plots,
+2017 - ongoing. ver 3. Environmental Data Initiative.
+https://doi.org/10.6073/pasta/285918fbf5cc4bd2ed2c1241db9a1b2d (Accessed 2022-05-23).
 
-  - The saddle sensor node met data v3 (knb-lter-nwt.210.3)  
-Morse, J. and Niwot Ridge LTER. 2021. Saddle catchment
-sensor network data, 2017- ongoing. ver 3. Environmental Data Initiative.
-https://doi.org/10.6073/pasta/c1a7a58e355112c362d35092071fa1f0 (Accessed 2021-10-22).
+  - The saddle sensor node met data v3 (knb-lter-nwt.210.4)  
+Morse, J. and Niwot Ridge LTER. 2022. Climate data for saddle catchment sensor
+network, 2017 - ongoing. ver 4. Environmental Data Initiative.
+https://doi.org/10.6073/pasta/598894834ea3bae61d7550c30da06565
+(Accessed 2022-05-23).
 
   - 5cm multispectral UAV imagery (knb-lter-nwt.67.1)
 Wigmore, O. and Niwot Ridge LTER. 2021. 5cm multispectral imagery from UAV
